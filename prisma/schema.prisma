@@ -1,0 +1,123 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "sqlite"
+}
+
+model Idea {
+  id        String   @id @default(cuid())
+  title     String
+  notes     String   @default("")
+  lanes     String   @default("[]") // JSON array
+  products  String   @default("[]") // JSON array
+  platform  String   @default("Both") // X, LinkedIn, Both
+  status    String   @default("idea") // idea, drafted, scheduled, posted
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  drafts    Draft[]
+}
+
+model Draft {
+  id             String          @id @default(cuid())
+  ideaId         String?
+  idea           Idea?           @relation(fields: [ideaId], references: [id])
+  content        String
+  platform       String          @default("X") // X, LinkedIn
+  suggestedTime  DateTime?
+  lanes          String          @default("[]") // JSON array
+  products       String          @default("[]") // JSON array
+  status         String          @default("draft") // draft, approved, scheduled, posted, rejected
+  rejectionNote  String?
+  variations     String          @default("[]") // JSON array of variation strings
+  isThread       Boolean         @default(false)
+  threadParts    String          @default("[]") // JSON array of thread parts
+  attachments    String          @default("[]") // JSON array of attachment paths
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+  scheduledPosts ScheduledPost[]
+}
+
+model ScheduledPost {
+  id          String      @id @default(cuid())
+  draftId     String
+  draft       Draft       @relation(fields: [draftId], references: [id])
+  platform    String
+  scheduledAt DateTime
+  postedAt    DateTime?
+  externalId  String?
+  status      String      @default("queued") // queued, posted, failed
+  error       String?
+  createdAt   DateTime    @default(now())
+  analytics   Analytics[]
+}
+
+model ReplyTarget {
+  id            String   @id @default(cuid())
+  accountHandle String
+  accountName   String   @default("")
+  keywords      String   @default("[]") // JSON array
+  isActive      Boolean  @default(true)
+  createdAt     DateTime @default(now())
+}
+
+model ReplyCandidate {
+  id               String   @id @default(cuid())
+  externalPostId   String   @unique
+  authorHandle     String
+  authorName       String   @default("")
+  content          String
+  engagement       String   @default("{}") // JSON object
+  platform         String   @default("X")
+  replySuggestions String   @default("[]") // JSON array
+  status           String   @default("new") // new, replied, skipped
+  repliedAt        DateTime?
+  createdAt        DateTime @default(now())
+}
+
+model Analytics {
+  id              String        @id @default(cuid())
+  scheduledPostId String
+  scheduledPost   ScheduledPost @relation(fields: [scheduledPostId], references: [id])
+  platform        String
+  externalId      String
+  impressions     Int           @default(0)
+  likes           Int           @default(0)
+  retweets        Int           @default(0)
+  bookmarks       Int           @default(0)
+  replies         Int           @default(0)
+  profileVisits   Int           @default(0)
+  fetchedAt       DateTime      @default(now())
+  createdAt       DateTime      @default(now())
+}
+
+model VoiceProfile {
+  id          String   @id @default(cuid())
+  platform    String // X, LinkedIn
+  name        String
+  description String   @default("")
+  examples    String   @default("[]") // JSON array
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model TimeSlot {
+  id        String   @id @default(cuid())
+  time      String // HH:MM format
+  platforms String   @default("[\"X\",\"LinkedIn\"]") // JSON array
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+}
+
+model XAccount {
+  id           String   @id @default(cuid())
+  accessToken  String
+  refreshToken String
+  expiresAt    DateTime
+  username     String
+  userId       String
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+}

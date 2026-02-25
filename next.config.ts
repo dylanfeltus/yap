@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
+  // Port is configured via CLI: next dev -p 3333
 };
 
 export default nextConfig;
