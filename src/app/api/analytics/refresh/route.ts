@@ -53,8 +53,14 @@ export async function POST() {
         updated++;
       } else {
         // Check if a scheduled post already exists for this tweet (posted via our pipeline)
+        // Thread posts store IDs as comma-separated, so check both exact and contains match
         const existingPost = await prisma.scheduledPost.findFirst({
-          where: { externalId: tweet.id },
+          where: {
+            OR: [
+              { externalId: tweet.id },
+              { externalId: { contains: tweet.id } },
+            ],
+          },
         });
 
         let scheduledPostId: string;

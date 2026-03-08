@@ -80,6 +80,21 @@ export async function publishPost(scheduledPostId: string): Promise<string[]> {
 
   const draft = post.draft;
 
+  // Only publish to platforms we support
+  if (post.platform !== "X") {
+    await prisma.scheduledPost.update({
+      where: { id: scheduledPostId },
+      data: {
+        status: "failed",
+        error: JSON.stringify({
+          message: `Publishing to ${post.platform} is not yet supported`,
+          failedAt: new Date().toISOString(),
+        }),
+      },
+    });
+    throw new Error(`Publishing to ${post.platform} is not yet supported`);
+  }
+
   try {
     let tweetIds: string[];
     
@@ -188,10 +203,11 @@ export async function publishPost(scheduledPostId: string): Promise<string[]> {
         },
       });
     } else {
-      // Update with retry count, keep status as queued
+      // Reset to queued so the scheduler picks it up again for retry
       await prisma.scheduledPost.update({
         where: { id: scheduledPostId },
         data: {
+          status: "queued",
           error: JSON.stringify({
             message: errorMessage,
             retryCount,
