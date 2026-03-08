@@ -1,4 +1,4 @@
-# Content Command Center — Spec
+# Yap — Spec
 
 ## Overview
 A self-hosted content management tool for solo creators and small teams. Manage content ideas, draft posts, schedule publishing, track analytics, and curate reply opportunities — all from one dashboard.

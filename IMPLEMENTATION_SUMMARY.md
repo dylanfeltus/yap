@@ -1,4 +1,4 @@
-# Content Command Center - X OAuth & Analytics Implementation
+# Yap - X OAuth & Analytics Implementation
 
 ## ✅ Completed Features
 
