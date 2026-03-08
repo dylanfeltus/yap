@@ -17,6 +17,7 @@ import { Badge } from "@/components/ui/badge";
 import { Separator } from "@/components/ui/separator";
 import { ThreadPreview } from "./thread-preview";
 import { ApprovalBar } from "./approval-bar";
+import { MediaUpload } from "./media-upload";
 import { Save, Loader2 } from "lucide-react";
 
 interface DraftEditorProps {
@@ -44,15 +45,20 @@ export function DraftEditor({
   const [content, setContent] = useState(draft.content);
   const [platform, setPlatform] = useState(draft.platform);
   const [status, setStatus] = useState(draft.status);
+  const [attachments, setAttachments] = useState<string[]>(
+    parseJSON<string[]>(draft.attachments, [])
+  );
   const [saving, setSaving] = useState(false);
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const saveTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const contentRef = useRef(content);
   const platformRef = useRef(platform);
+  const attachmentsRef = useRef(attachments);
 
   // Keep refs in sync
   contentRef.current = content;
   platformRef.current = platform;
+  attachmentsRef.current = attachments;
 
   const limit = PLATFORM_LIMITS[platform] ?? 280;
   const isThread = isThreadContent(content);
@@ -79,6 +85,7 @@ export function DraftEditor({
           platform: currentPlatform,
           isThread: thread,
           threadParts: parts,
+          attachments: attachmentsRef.current,
         }),
       });
       if (!res.ok) throw new Error("Save failed");
@@ -148,6 +155,11 @@ export function DraftEditor({
 
   function handleContentChange(value: string) {
     setContent(value);
+    triggerAutoSave();
+  }
+
+  function handleAttachmentsChange(value: string[]) {
+    setAttachments(value);
     triggerAutoSave();
   }
 
@@ -267,6 +279,12 @@ export function DraftEditor({
               )}
             </div>
 
+            {/* Media upload */}
+            <MediaUpload
+              attachments={attachments}
+              onChange={handleAttachmentsChange}
+            />
+
             {/* Thread hint */}
             {!isThread && !hasExistingThread && (
               <p className="text-[10px] text-zinc-600">
@@ -278,7 +296,7 @@ export function DraftEditor({
           {/* Thread preview panel */}
           {isThread && (
             <div className="lg:border-l lg:border-zinc-800 lg:pl-4">
-              <ThreadPreview parts={threadParts} platform={platform} />
+              <ThreadPreview parts={threadParts} platform={platform} attachments={attachments} />
             </div>
           )}
 
@@ -288,6 +306,7 @@ export function DraftEditor({
               <ThreadPreview
                 parts={existingThreadParts}
                 platform={platform}
+                attachments={attachments}
               />
             </div>
           )}

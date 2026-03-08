@@ -57,6 +57,11 @@ const tools: Tool[] = [
           items: { type: "string" },
           description: "Products mentioned in the post",
         },
+        attachments: {
+          type: "array",
+          items: { type: "string" },
+          description: "Array of image URLs/paths to attach (max 4 for X)",
+        },
       },
       required: ["content"],
     },
@@ -100,6 +105,11 @@ const tools: Tool[] = [
           type: "array",
           items: { type: "string" },
           description: "Updated thread parts",
+        },
+        attachments: {
+          type: "array",
+          items: { type: "string" },
+          description: "Updated image attachment URLs/paths (max 4 for X)",
         },
       },
       required: ["id"],
@@ -237,6 +247,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             threadParts: JSON.stringify(args.threadParts || []),
             lanes: JSON.stringify(args.lanes || []),
             products: JSON.stringify(args.products || []),
+            attachments: JSON.stringify(((args.attachments as string[]) || []).slice(0, 4)),
             status: "draft",
           },
         });
@@ -306,6 +317,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         }
         if (args.threadParts !== undefined) {
           updateData.threadParts = JSON.stringify(args.threadParts);
+        }
+        if (args.attachments !== undefined) {
+          updateData.attachments = JSON.stringify((args.attachments as string[]).slice(0, 4));
         }
 
         const draft = await prisma.draft.update({
