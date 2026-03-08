@@ -1,0 +1,12 @@
+{
+  "mcpServers": {
+    "content-command-center": {
+      "command": "npm",
+      "args": ["run", "mcp"],
+      "cwd": "/path/to/content-command-center",
+      "env": {
+        "NODE_ENV": "production"
+      }
+    }
+  }
+}
