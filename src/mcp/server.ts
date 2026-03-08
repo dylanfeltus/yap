@@ -8,6 +8,7 @@ import {
 } from "@modelcontextprotocol/sdk/types.js";
 import { prisma } from "../lib/prisma.js";
 import { publishPost } from "../lib/publisher.js";
+import { getWeekStart, getDateForDay, pickTimeInSlot } from "../lib/slot-utils.js";
 
 const server = new Server(
   {
@@ -198,6 +199,29 @@ const tools: Tool[] = [
         },
       },
       required: ["accountHandle"],
+    },
+  },
+  {
+    name: "get_weekly_plan",
+    description: "Get the current week's slot fill status — shows how many posts are scheduled vs. target for each time block and platform.",
+    inputSchema: {
+      type: "object",
+      properties: {},
+    },
+  },
+  {
+    name: "get_next_slot",
+    description: "Get the next available (unfilled) slot time for a platform. Returns a suggested scheduling time.",
+    inputSchema: {
+      type: "object",
+      properties: {
+        platform: {
+          type: "string",
+          enum: ["X", "LinkedIn"],
+          description: "Platform to find next slot for",
+        },
+      },
+      required: ["platform"],
     },
   },
   {
@@ -518,6 +542,95 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
               }, null, 2),
             },
           ],
+        };
+      }
+
+      case "get_weekly_plan": {
+        const now = new Date();
+        const weekStart = getWeekStart(now);
+        const slots = await prisma.slotConfig.findMany({
+          orderBy: [{ dayOfWeek: "asc" }, { startHour: "asc" }, { platform: "asc" }],
+        });
+
+        const fillStatuses = await Promise.all(
+          slots.map(async (slot) => {
+            const dayDate = getDateForDay(weekStart, slot.dayOfWeek);
+            const slotStart = new Date(dayDate);
+            slotStart.setHours(slot.startHour, 0, 0, 0);
+            const slotEnd = new Date(dayDate);
+            slotEnd.setHours(slot.endHour, 0, 0, 0);
+
+            const count = await prisma.scheduledPost.count({
+              where: {
+                platform: slot.platform,
+                scheduledAt: { gte: slotStart, lt: slotEnd },
+                status: { not: "failed" },
+              },
+            });
+
+            return {
+              dayOfWeek: slot.dayOfWeek,
+              timeBlock: slot.timeBlock,
+              platform: slot.platform,
+              targetCount: slot.targetCount,
+              filledCount: count,
+              remaining: Math.max(0, slot.targetCount - count),
+            };
+          })
+        );
+
+        return {
+          content: [{ type: "text", text: JSON.stringify({ weekStart: weekStart.toISOString(), slots: fillStatuses }, null, 2) }],
+        };
+      }
+
+      case "get_next_slot": {
+        const platform = args.platform as string;
+        const now2 = new Date();
+        const ws = getWeekStart(now2);
+        const slots2 = await prisma.slotConfig.findMany({
+          where: { platform },
+          orderBy: [{ dayOfWeek: "asc" }, { startHour: "asc" }],
+        });
+
+        for (const slot of slots2) {
+          const dayDate = getDateForDay(ws, slot.dayOfWeek);
+          const slotStart = new Date(dayDate);
+          slotStart.setHours(slot.startHour, 0, 0, 0);
+          const slotEnd = new Date(dayDate);
+          slotEnd.setHours(slot.endHour, 0, 0, 0);
+
+          if (slotEnd <= now2) continue;
+
+          const filled = await prisma.scheduledPost.count({
+            where: {
+              platform: slot.platform,
+              scheduledAt: { gte: slotStart, lt: slotEnd },
+              status: { not: "failed" },
+            },
+          });
+
+          if (filled < slot.targetCount) {
+            const effectiveStart = slotStart > now2 ? slot.startHour : now2.getHours() + 1;
+            const suggestedTime = pickTimeInSlot(dayDate, effectiveStart, slot.endHour);
+
+            return {
+              content: [{
+                type: "text",
+                text: JSON.stringify({
+                  dayOfWeek: slot.dayOfWeek,
+                  timeBlock: slot.timeBlock,
+                  platform: slot.platform,
+                  suggestedTime: suggestedTime.toISOString(),
+                  remaining: slot.targetCount - filled,
+                }, null, 2),
+              }],
+            };
+          }
+        }
+
+        return {
+          content: [{ type: "text", text: JSON.stringify({ message: "No available slots this week for " + platform }) }],
         };
       }
 
