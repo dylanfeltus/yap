@@ -20,7 +20,13 @@ export async function POST() {
 
     for (const target of targets) {
       checkedHandles.push(target.accountHandle);
-      const keywords: string[] = JSON.parse(target.keywords || "[]");
+      let keywords: string[] = [];
+      try {
+        const parsed = JSON.parse(target.keywords || "[]");
+        keywords = Array.isArray(parsed) ? parsed : [];
+      } catch {
+        // Malformed keywords — treat as no filter
+      }
 
       const query = `from:${target.accountHandle}`;
       const url = new URL("https://api.x.com/2/tweets/search/recent");
@@ -57,33 +63,32 @@ export async function POST() {
           if (!matches) continue;
         }
 
-        // Skip if already exists
-        const existing = await prisma.replyCandidate.findUnique({
-          where: { externalPostId: tweet.id },
-        });
-        if (existing) continue;
-
         const metrics = tweet.public_metrics;
-        await prisma.replyCandidate.create({
-          data: {
-            externalPostId: tweet.id,
-            authorHandle: target.accountHandle,
-            authorName: target.accountName,
-            content: tweet.text,
-            engagement: JSON.stringify({
-              views: metrics?.impression_count ?? 0,
-              likes: metrics?.like_count ?? 0,
-              retweets: metrics?.retweet_count ?? 0,
-              replies: metrics?.reply_count ?? 0,
-            }),
-            platform: "X",
-            replySuggestions: "[]",
-            tweetedAt: tweet.created_at ? new Date(tweet.created_at) : null,
-            status: "new",
-          },
-        });
-
-        newCandidates++;
+        try {
+          await prisma.replyCandidate.upsert({
+            where: { externalPostId: tweet.id },
+            update: {},
+            create: {
+              externalPostId: tweet.id,
+              authorHandle: target.accountHandle,
+              authorName: target.accountName,
+              content: tweet.text,
+              engagement: JSON.stringify({
+                views: metrics?.impression_count ?? 0,
+                likes: metrics?.like_count ?? 0,
+                retweets: metrics?.retweet_count ?? 0,
+                replies: metrics?.reply_count ?? 0,
+              }),
+              platform: "X",
+              replySuggestions: "[]",
+              tweetedAt: tweet.created_at ? new Date(tweet.created_at) : null,
+              status: "new",
+            },
+          });
+          newCandidates++;
+        } catch {
+          // Ignore unique constraint race conditions
+        }
       }
     }
 
