@@ -1,78 +1,73 @@
-# Content Command Center
+# Yap
 
-A self-hosted content management dashboard for creators. Manage ideas, draft posts, schedule publishing to X and LinkedIn, track analytics, and curate reply opportunities — all from one local-first interface.
+Open source social media management. AI agents write, humans approve.
+
+## What is Yap?
+
+Yap is a platform where AI agents and humans collaborate on social media content. Your agents create drafts, schedule posts, and find reply opportunities. You review everything and approve with one click.
+
+**Yap is not an AI product.** It's the workspace where your existing AI agents (Claude, OpenClaw, or any MCP-compatible agent) interface with your social accounts.
 
 ## Features
 
-- **Idea Bank** — Capture and organize content ideas with tags and filters
-- **Draft Workshop** — Write, review, and approve posts with A/B variations and thread support
-- **Content Calendar** — Visual week/month view with drag-to-reschedule
-- **Scheduler** — Configurable time slots, auto-publish via X and LinkedIn APIs
-- **Reply Guy** — Surface high-engagement posts and generate AI reply suggestions
-- **Analytics** — Track impressions, likes, retweets, bookmarks across platforms
-- **Voice Profiles** — Define your writing voice per platform for AI-generated content
+- 📝 **Draft management** — Create, edit, and organize posts and threads
+- ✅ **Approval workflow** — Nothing posts without your say-so
+- 📅 **Calendar view** — See your content schedule at a glance
+- 🗓️ **Weekly planner** — Set content goals by day, time block, and platform
+- 🎯 **Reply Guy** — Surface high-opportunity tweets, draft replies, one-click copy
+- 📎 **Media uploads** — Attach up to 4 images per post
+- 🔌 **MCP server** — 9 tools for any AI agent to manage your content
+- ⏰ **Auto-scheduler** — Posts go out on time, every time
+
+## Platforms
+
+- ✅ X (Twitter) — Full support
+- 🔜 LinkedIn — Coming soon
 
 ## Quick Start
 
 ```bash
-# Install dependencies
+git clone https://github.com/dylanfeltus/yap.git
+cd yap
 npm install
-
-# Set up your environment
 cp .env.example .env
-# Edit .env with your API keys
-
-# Initialize the database
-npx prisma migrate dev
-
-# Start the dev server
+# Add your X API credentials to .env
+npx prisma db push
 npm run dev
 ```
 
-Open [http://localhost:3333](http://localhost:3333).
+Open http://localhost:3333
 
-## Configuration
+## MCP Server
 
-Set your content lanes and product tags via environment variables:
+Connect your AI agent to Yap:
 
-```env
-NEXT_PUBLIC_CONTENT_LANES=Marketing,Engineering,Design,Culture
-NEXT_PUBLIC_CONTENT_PRODUCTS=App,CLI,API,Docs
+```bash
+npm run mcp
 ```
 
-Or edit the defaults in `src/lib/utils.ts`.
+Available tools: `create_draft`, `list_drafts`, `update_draft`, `schedule_draft`, `publish_now`, `get_analytics`, `list_reply_candidates`, `add_reply_target`, `get_voice_profile`, `get_weekly_plan`, `get_next_slot`
 
-## Stack
+## Architecture
 
-- **Next.js** (App Router) — Framework
-- **Tailwind CSS + shadcn/ui** — Styling
-- **Prisma + SQLite** — Local database, zero config
-- **Claude API** — AI features (reply suggestions, draft variations)
-- **X API v2** — Publishing and analytics
-- **LinkedIn API** — Publishing and analytics
+- **Next.js** (App Router) — UI and API routes
+- **Prisma** + SQLite — Local database
+- **Tailwind** + shadcn/ui — Styling
+- **MCP** — Agent integration protocol
 
-## Environment Variables
+## Self-host vs Hosted
 
-| Variable | Required | Description |
-|----------|----------|-------------|
-| `DATABASE_URL` | Yes | SQLite path (default: `file:./dev.db`) |
-| `CLAUDE_API_KEY` | For AI | Claude API key for content generation |
-| `X_CLIENT_ID` | For X | X OAuth 2.0 client ID |
-| `X_CLIENT_SECRET` | For X | X OAuth 2.0 client secret |
-| `X_BEARER_TOKEN` | For Reply Guy | X app-level bearer token |
-| `LINKEDIN_CLIENT_ID` | For LinkedIn | LinkedIn OAuth client ID |
-| `LINKEDIN_CLIENT_SECRET` | For LinkedIn | LinkedIn OAuth client secret |
+| | Self-hosted | Hosted (yap.ninja) |
+|---|---|---|
+| Price | Free forever | $10/mo |
+| API keys | Bring your own | Bring your own |
+| Data | On your machine | Cloud |
+| Setup | 5 minutes | Sign up and go |
 
-## API
-
-Exposes REST endpoints for external integrations:
-
-- `POST /api/ideas` — Submit content ideas
-- `POST /api/drafts` — Push drafts for review
-- `GET /api/drafts?status=draft` — List pending drafts
-- `PATCH /api/drafts/:id` — Approve, reject, or edit
-- `GET /api/analytics/summary` — Performance summary
+Hosted version coming soon — [join the waitlist](https://yap.ninja).
 
 ## License
 
-MIT
+MIT — do whatever you want with it.
+
+Built by [Dylan Feltus](https://x.com/DylanFeltus)

@@ -49,7 +49,7 @@ X_CLIENT_SECRET=ATZvBwRoDA28Enh0T15hYpV0fEPN3WInhtH-1rldE6byi6d6rc
 
 ## Start Dev Server
 ```bash
-cd /Users/claudia/Code/content-command-center
+cd /path/to/yap
 npm run dev
 ```
 

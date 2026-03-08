@@ -17,7 +17,7 @@ async function runScheduler() {
 }
 
 async function main() {
-  console.error("Content Command Center Scheduler Worker started");
+  console.error("Yap Scheduler Worker started");
   console.error(`Checking for scheduled posts every ${POLL_INTERVAL_MS / 1000} seconds`);
   
   // Run immediately on start

@@ -9,8 +9,8 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
-  title: "Content Command Center",
-  description: "Content management and scheduling tool",
+  title: "Yap",
+  description: "Open source social media management",
 };
 
 export default function RootLayout({
