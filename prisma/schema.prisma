@@ -112,6 +112,20 @@ model TimeSlot {
   createdAt DateTime @default(now())
 }
 
+model SlotConfig {
+  id          String   @id @default(cuid())
+  dayOfWeek   Int      // 0=Mon, 1=Tue, ... 6=Sun
+  timeBlock   String   // "morning" | "afternoon" | "evening"
+  platform    String   // "X" | "LinkedIn"
+  targetCount Int      @default(1)
+  startHour   Int      // e.g. 8 for morning, 13 for afternoon, 18 for evening
+  endHour     Int      // e.g. 12, 17, 21
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@unique([dayOfWeek, timeBlock, platform])
+}
+
 model XAccount {
   id           String   @id @default(cuid())
   accessToken  String

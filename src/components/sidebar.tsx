@@ -6,6 +6,7 @@ import { useEffect, useState } from "react";
 import {
   CheckCircle2,
   Calendar,
+  CalendarDays,
   FileText,
   Lightbulb,
   MessageSquare,
@@ -20,6 +21,7 @@ import { cn } from "@/lib/utils";
 const navItems = [
   { label: "Approve", href: "/approve", icon: CheckCircle2, showBadge: true },
   { label: "Calendar", href: "/calendar", icon: Calendar },
+  { label: "Planner", href: "/planner", icon: CalendarDays },
   { label: "Drafts", href: "/drafts", icon: FileText },
   { label: "Ideas", href: "/ideas", icon: Lightbulb },
   { label: "Reply Guy", href: "/replies", icon: MessageSquare },
