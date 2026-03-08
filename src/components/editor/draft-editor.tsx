@@ -127,9 +127,23 @@ export function DraftEditor({
     return () => window.removeEventListener("keydown", handleKeyDown);
   }, [status, saveToApi, onClose]);
 
-  function handleStatusChange(newStatus: string) {
+  async function handleStatusChange(newStatus: string) {
     setStatus(newStatus);
     onStatusChange?.(newStatus);
+
+    // Persist to backend
+    if (draft?.id) {
+      try {
+        await fetch(`/api/drafts/${draft.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ status: newStatus }),
+        });
+      } catch {
+        // Revert on failure
+        setStatus(status);
+      }
+    }
   }
 
   function handleContentChange(value: string) {

@@ -52,6 +52,7 @@ interface ScheduledPostWithDraft {
   draftId: string;
   platform: string;
   scheduledAt: string;
+  postedAt: string | null;
   status: string;
   draft?: Draft;
 }
@@ -102,8 +103,8 @@ export default function ApprovePage() {
           .filter((p) => p.status === "posted")
           .sort(
             (a, b) =>
-              new Date(b.scheduledAt).getTime() -
-              new Date(a.scheduledAt).getTime()
+              new Date(b.postedAt ?? b.scheduledAt).getTime() -
+              new Date(a.postedAt ?? a.scheduledAt).getTime()
           )
           .slice(0, 10)
       );
