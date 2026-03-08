@@ -459,31 +459,54 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             ],
           };
         } else {
-          // Get recent posts with their analytics
-          const posts = await prisma.scheduledPost.findMany({
-            where: { status: "posted" },
-            orderBy: { postedAt: "desc" },
-            take: (args.limit as number) || 10,
+          // Get summary + recent posts with analytics
+          const allAnalytics = await prisma.analytics.findMany({
             include: {
-              analytics: {
-                orderBy: { fetchedAt: "desc" },
-                take: 1,
+              scheduledPost: {
+                include: { draft: true },
               },
-              draft: true,
             },
+            orderBy: { fetchedAt: "desc" },
           });
+
+          const totalImpressions = allAnalytics.reduce((s, a) => s + a.impressions, 0);
+          const totalLikes = allAnalytics.reduce((s, a) => s + a.likes, 0);
+          const totalRetweets = allAnalytics.reduce((s, a) => s + a.retweets, 0);
+          const totalReplies = allAnalytics.reduce((s, a) => s + a.replies, 0);
+          const totalEngagements = totalLikes + totalRetweets + totalReplies;
+          const avgEngagementRate = totalImpressions > 0
+            ? Number(((totalEngagements / totalImpressions) * 100).toFixed(2))
+            : 0;
+
+          const limit = (args.limit as number) || 10;
+          const recentPosts = allAnalytics.slice(0, limit).map(a => ({
+            id: a.scheduledPost.id,
+            content: a.scheduledPost.draft.content,
+            platform: a.platform,
+            postedAt: a.scheduledPost.postedAt,
+            externalId: a.scheduledPost.externalId,
+            impressions: a.impressions,
+            likes: a.likes,
+            retweets: a.retweets,
+            replies: a.replies,
+          }));
 
           return {
             content: [
               {
                 type: "text",
-                text: JSON.stringify(posts.map(p => ({
-                  id: p.id,
-                  content: p.draft.content,
-                  postedAt: p.postedAt,
-                  externalId: p.externalId,
-                  analytics: p.analytics[0] || null,
-                })), null, 2),
+                text: JSON.stringify({
+                  summary: {
+                    totalPosts: allAnalytics.length,
+                    totalImpressions,
+                    totalLikes,
+                    totalRetweets,
+                    totalReplies,
+                    totalEngagements,
+                    avgEngagementRate,
+                  },
+                  recentPosts,
+                }, null, 2),
               },
             ],
           };

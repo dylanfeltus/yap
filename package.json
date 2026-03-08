@@ -6,7 +6,16 @@
   "author": "Dylan Feltus",
   "repository": "https://github.com/dylanfeltus/yap",
   "homepage": "https://yap.ninja",
-  "keywords": ["social-media", "x", "twitter", "linkedin", "ai-agents", "mcp", "open-source", "content-management"],
+  "keywords": [
+    "social-media",
+    "x",
+    "twitter",
+    "linkedin",
+    "ai-agents",
+    "mcp",
+    "open-source",
+    "content-management"
+  ],
   "private": true,
   "scripts": {
     "dev": "next dev -p 3333",
@@ -42,6 +51,7 @@
     "prisma": "^7.4.1",
     "react": "19.2.3",
     "react-dom": "19.2.3",
+    "recharts": "^3.8.0",
     "tailwind-merge": "^3.5.0",
     "tsx": "^4.21.0"
   },
