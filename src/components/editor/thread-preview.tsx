@@ -7,9 +7,10 @@ import { MessageSquare } from "lucide-react";
 interface ThreadPreviewProps {
   parts: string[];
   platform: string;
+  attachments?: string[];
 }
 
-export function ThreadPreview({ parts, platform }: ThreadPreviewProps) {
+export function ThreadPreview({ parts, platform, attachments = [] }: ThreadPreviewProps) {
   const limit = PLATFORM_LIMITS[platform] ?? 280;
   const total = parts.length;
 
@@ -55,6 +56,23 @@ export function ThreadPreview({ parts, platform }: ThreadPreviewProps) {
                   <span className="text-zinc-600 italic">Empty part</span>
                 )}
               </p>
+              {/* Show attachments on first tweet only */}
+              {idx === 0 && attachments.length > 0 && (
+                <div className={cn(
+                  "grid gap-1 mt-2",
+                  attachments.length === 1 ? "grid-cols-1" : "grid-cols-2"
+                )}>
+                  {attachments.map((url, imgIdx) => (
+                    // eslint-disable-next-line @next/next/no-img-element
+                    <img
+                      key={url}
+                      src={url}
+                      alt={`Attachment ${imgIdx + 1}`}
+                      className="w-full rounded-md object-cover aspect-video"
+                    />
+                  ))}
+                </div>
+              )}
             </div>
           );
         })}

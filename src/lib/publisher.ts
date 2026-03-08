@@ -1,5 +1,5 @@
 import { prisma } from "@/lib/prisma";
-import { postTweet, postThread } from "@/lib/x-api";
+import { postTweet, postThread, uploadMedia } from "@/lib/x-api";
 
 interface PublishResult {
   published: number;
@@ -96,6 +96,22 @@ export async function publishPost(scheduledPostId: string): Promise<string[]> {
   }
 
   try {
+    // Upload media attachments if present
+    const attachments: string[] = JSON.parse(draft.attachments);
+    let mediaIds: string[] = [];
+    if (attachments.length > 0) {
+      for (const attachment of attachments) {
+        try {
+          const mediaId = await uploadMedia(attachment);
+          if (mediaId) {
+            mediaIds.push(mediaId);
+          }
+        } catch (err) {
+          console.error(`Failed to upload media ${attachment}:`, err);
+        }
+      }
+    }
+
     let tweetIds: string[];
     
     if (draft.isThread) {
@@ -106,7 +122,7 @@ export async function publishPost(scheduledPostId: string): Promise<string[]> {
         throw new Error("Thread has no parts");
       }
 
-      const result = await postThread(threadParts);
+      const result = await postThread(threadParts, mediaIds);
       tweetIds = result.tweetIds;
       
       if (result.error && tweetIds.length === 0) {
@@ -135,7 +151,7 @@ export async function publishPost(scheduledPostId: string): Promise<string[]> {
       }
     } else {
       // Post single tweet
-      const tweetId = await postTweet(draft.content);
+      const tweetId = await postTweet(draft.content, mediaIds.length > 0 ? mediaIds : undefined);
       
       if (!tweetId) {
         throw new Error("Failed to post tweet (no ID returned)");
