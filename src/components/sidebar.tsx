@@ -4,27 +4,28 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  Lightbulb,
-  FileText,
+  CheckCircle2,
   Calendar,
-  Clock,
+  FileText,
+  Lightbulb,
   MessageSquare,
   BarChart3,
   Mic,
+  Clock,
   Twitter,
-  CheckCircle2,
   XCircle,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { label: "Idea Bank", href: "/ideas", icon: Lightbulb },
-  { label: "Draft Workshop", href: "/drafts", icon: FileText },
+  { label: "Approve", href: "/approve", icon: CheckCircle2, showBadge: true },
   { label: "Calendar", href: "/calendar", icon: Calendar },
-  { label: "Scheduler", href: "/scheduler", icon: Clock },
+  { label: "Drafts", href: "/drafts", icon: FileText },
+  { label: "Ideas", href: "/ideas", icon: Lightbulb },
   { label: "Reply Guy", href: "/replies", icon: MessageSquare },
   { label: "Analytics", href: "/analytics", icon: BarChart3 },
-  { label: "Voice Profiles", href: "/voice", icon: Mic },
+  { label: "Voice", href: "/voice", icon: Mic },
+  { label: "Scheduler", href: "/scheduler", icon: Clock },
 ];
 
 interface XAccountStatus {
@@ -34,20 +35,38 @@ interface XAccountStatus {
 
 export function Sidebar() {
   const pathname = usePathname();
-  const [xAccount, setXAccount] = useState<XAccountStatus>({ connected: false });
+  const [xAccount, setXAccount] = useState<XAccountStatus>({
+    connected: false,
+  });
   const [loading, setLoading] = useState(false);
+  const [pendingCount, setPendingCount] = useState(0);
 
   useEffect(() => {
     checkXAccountStatus();
+    fetchPendingCount();
+    // Refresh pending count every 30 seconds
+    const interval = setInterval(fetchPendingCount, 30000);
+    return () => clearInterval(interval);
   }, []);
+
+  async function fetchPendingCount() {
+    try {
+      const res = await fetch("/api/drafts?status=draft");
+      if (!res.ok) return;
+      const data = await res.json();
+      setPendingCount(Array.isArray(data) ? data.length : 0);
+    } catch {
+      // Silently fail — badge just won't show
+    }
+  }
 
   async function checkXAccountStatus() {
     try {
       const res = await fetch("/api/auth/x/status");
       const data = await res.json();
       setXAccount(data);
-    } catch (error) {
-      console.error("Failed to check X account status:", error);
+    } catch {
+      // Failed to check status
     }
   }
 
@@ -57,8 +76,7 @@ export function Sidebar() {
       const res = await fetch("/api/auth/x/authorize");
       const data = await res.json();
       window.location.href = data.url;
-    } catch (error) {
-      console.error("Failed to start X OAuth flow:", error);
+    } catch {
       setLoading(false);
     }
   }
@@ -67,13 +85,12 @@ export function Sidebar() {
     if (!confirm("Are you sure you want to disconnect your X account?")) {
       return;
     }
-
     setLoading(true);
     try {
       await fetch("/api/auth/x/disconnect", { method: "POST" });
       setXAccount({ connected: false });
-    } catch (error) {
-      console.error("Failed to disconnect X account:", error);
+    } catch {
+      // Failed to disconnect
     } finally {
       setLoading(false);
     }
@@ -84,10 +101,10 @@ export function Sidebar() {
       {/* App title */}
       <div className="flex h-14 items-center gap-2.5 px-5">
         <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-500 text-xs font-bold text-white">
-          C
+          Y
         </div>
         <span className="text-sm font-semibold tracking-tight text-zinc-100">
-          Command Center
+          Yap
         </span>
       </div>
 
@@ -117,7 +134,12 @@ export function Sidebar() {
                     : "text-zinc-500 group-hover:text-zinc-400"
                 )}
               />
-              {item.label}
+              <span className="flex-1">{item.label}</span>
+              {item.showBadge && pendingCount > 0 && (
+                <span className="flex h-5 min-w-5 items-center justify-center rounded-full bg-yellow-500/20 px-1.5 text-[10px] font-semibold text-yellow-400">
+                  {pendingCount}
+                </span>
+              )}
             </Link>
           );
         })}
@@ -155,7 +177,7 @@ export function Sidebar() {
             {loading ? "Connecting..." : "Connect X Account"}
           </button>
         )}
-        <p className="mt-2 text-xs text-zinc-600">CCC v0.1</p>
+        <p className="mt-2 text-xs text-zinc-600">Yap v0.1</p>
       </div>
     </aside>
   );
