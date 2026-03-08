@@ -41,3 +41,14 @@ yarn-error.log*
 next-env.d.ts
 
 /src/generated/prisma
+
+# database
+*.db
+*.db-journal
+
+# uploads (keep .gitkeep)
+public/uploads/*
+!public/uploads/.gitkeep
+
+# prisma migrations (using db push with SQLite)
+prisma/migrations/
