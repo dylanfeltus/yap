@@ -179,7 +179,7 @@ export function DraftEditor({
       <div className="flex items-center justify-between px-4 py-3 border-b border-zinc-800">
         <div className="flex items-center gap-3">
           <Select value={platform} onValueChange={handlePlatformChange}>
-            <SelectTrigger className="w-[120px] h-8 text-xs">
+            <SelectTrigger className="w-[120px] h-10 text-xs sm:h-8">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -266,7 +266,7 @@ export function DraftEditor({
                 onChange={(e) => handleContentChange(e.target.value)}
                 placeholder="Write your content here... Use --- on its own line to create a thread."
                 className={cn(
-                  "min-h-[300px] resize-none font-mono text-sm leading-relaxed",
+                  "min-h-[240px] resize-none font-mono text-base leading-relaxed sm:min-h-[300px] sm:text-sm",
                   isOver && "border-red-500/50 focus-visible:ring-red-500/30",
                   isWarning &&
                     "border-yellow-500/50 focus-visible:ring-yellow-500/30"

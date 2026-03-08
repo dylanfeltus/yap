@@ -235,7 +235,7 @@ export default function ApprovePage() {
           if (!open) handleEditorClose();
         }}
       >
-        <DialogContent className="max-w-3xl h-[85vh] p-0 gap-0 flex flex-col">
+        <DialogContent className="w-full max-w-[95vw] h-[100dvh] p-0 gap-0 flex flex-col sm:h-[85vh] sm:max-w-3xl">
           {editingDraft && (
             <DraftEditor
               draft={editingDraft}
