@@ -1,9 +1,9 @@
 {
   "mcpServers": {
-    "content-command-center": {
+    "yap-social": {
       "command": "npm",
       "args": ["run", "mcp"],
-      "cwd": "/path/to/content-command-center",
+      "cwd": "/path/to/yap",
       "env": {
         "NODE_ENV": "production"
       }
