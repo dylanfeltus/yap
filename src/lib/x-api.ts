@@ -84,7 +84,9 @@ export async function uploadMedia(imagePath: string): Promise<string | null> {
 
   // Prevent path traversal — ensure resolved path stays under public/uploads
   const uploadsDir = resolve(process.cwd(), "public", "uploads");
-  const fullPath = resolve(process.cwd(), "public", normalize(imagePath));
+  // Strip leading slash so resolve doesn't treat it as absolute
+  const safePath = normalize(imagePath).replace(/^\/+/, "");
+  const fullPath = resolve(process.cwd(), "public", safePath);
   if (!fullPath.startsWith(uploadsDir)) {
     throw new Error("Invalid media path: must be within uploads directory");
   }
