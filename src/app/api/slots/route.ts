@@ -18,39 +18,43 @@ export async function POST(request: NextRequest) {
     const body = await request.json();
 
     if (Array.isArray(body)) {
-      // Batch upsert
+      // Batch upsert — delete slots set to 0
       const results = await Promise.all(
-        body.map((item: {
+        body.map(async (item: {
           dayOfWeek: number;
           timeBlock: string;
           platform: string;
           targetCount: number;
           startHour: number;
           endHour: number;
-        }) =>
-          prisma.slotConfig.upsert({
-            where: {
-              dayOfWeek_timeBlock_platform: {
-                dayOfWeek: item.dayOfWeek,
-                timeBlock: item.timeBlock,
-                platform: item.platform,
-              },
-            },
+        }) => {
+          const uniqueWhere = {
+            dayOfWeek: item.dayOfWeek,
+            timeBlock: item.timeBlock,
+            platform: item.platform,
+          };
+
+          if (item.targetCount <= 0) {
+            // Delete slot if target is zero
+            await prisma.slotConfig.deleteMany({ where: uniqueWhere });
+            return { ...uniqueWhere, deleted: true };
+          }
+
+          return prisma.slotConfig.upsert({
+            where: { dayOfWeek_timeBlock_platform: uniqueWhere },
             update: {
               targetCount: item.targetCount,
               startHour: item.startHour,
               endHour: item.endHour,
             },
             create: {
-              dayOfWeek: item.dayOfWeek,
-              timeBlock: item.timeBlock,
-              platform: item.platform,
+              ...uniqueWhere,
               targetCount: item.targetCount,
               startHour: item.startHour,
               endHour: item.endHour,
             },
-          })
-        )
+          });
+        })
       );
       return NextResponse.json(results, { status: 201 });
     }

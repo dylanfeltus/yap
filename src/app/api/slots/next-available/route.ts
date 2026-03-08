@@ -37,6 +37,8 @@ export async function GET(request: NextRequest) {
 
       if (filledCount < slot.targetCount) {
         const effectiveStart = slotStart > now ? slot.startHour : now.getHours() + 1;
+        // Skip if no schedulable time remains in this slot
+        if (effectiveStart >= slot.endHour) continue;
         const suggestedTime = pickTimeInSlot(dayDate, effectiveStart, slot.endHour);
 
         return NextResponse.json({
