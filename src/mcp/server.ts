@@ -247,7 +247,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             threadParts: JSON.stringify(args.threadParts || []),
             lanes: JSON.stringify(args.lanes || []),
             products: JSON.stringify(args.products || []),
-            attachments: JSON.stringify(args.attachments || []),
+            attachments: JSON.stringify(((args.attachments as string[]) || []).slice(0, 4)),
             status: "draft",
           },
         });
@@ -319,7 +319,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           updateData.threadParts = JSON.stringify(args.threadParts);
         }
         if (args.attachments !== undefined) {
-          updateData.attachments = JSON.stringify(args.attachments);
+          updateData.attachments = JSON.stringify((args.attachments as string[]).slice(0, 4));
         }
 
         const draft = await prisma.draft.update({

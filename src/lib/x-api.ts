@@ -80,9 +80,14 @@ export async function uploadMedia(imagePath: string): Promise<string | null> {
   }
 
   const { readFile } = await import("fs/promises");
-  const { join } = await import("path");
+  const { join, resolve, normalize } = await import("path");
 
-  const fullPath = join(process.cwd(), "public", imagePath);
+  // Prevent path traversal — ensure resolved path stays under public/uploads
+  const uploadsDir = resolve(process.cwd(), "public", "uploads");
+  const fullPath = resolve(process.cwd(), "public", normalize(imagePath));
+  if (!fullPath.startsWith(uploadsDir)) {
+    throw new Error("Invalid media path: must be within uploads directory");
+  }
   const fileBuffer = await readFile(fullPath);
 
   const formData = new FormData();

@@ -97,7 +97,8 @@ export async function publishPost(scheduledPostId: string): Promise<string[]> {
 
   try {
     // Upload media attachments if present
-    const attachments: string[] = JSON.parse(draft.attachments);
+    const allAttachments: string[] = JSON.parse(draft.attachments);
+    const attachments = allAttachments.slice(0, 4); // X limit: max 4 images
     let mediaIds: string[] = [];
     if (attachments.length > 0) {
       for (const attachment of attachments) {
