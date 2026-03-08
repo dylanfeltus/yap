@@ -24,7 +24,7 @@ export default function RootLayout({
         className={`${inter.variable} font-sans antialiased bg-[#0a0a0a] text-zinc-100`}
       >
         <Sidebar />
-        <main className="ml-60 min-h-screen overflow-y-auto px-8 py-6">
+        <main className="min-h-screen overflow-y-auto px-4 pt-14 pb-6 md:ml-60 md:px-8 md:py-6">
           {children}
         </main>
       </body>

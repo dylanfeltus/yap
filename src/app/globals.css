@@ -1,5 +1,7 @@
 @import "tailwindcss";
 
+/* Ensure the viewport meta tag is set in app/layout for mobile responsiveness. */
+
 @theme inline {
   --color-background: #0a0a0a;
   --color-foreground: #f4f4f5;
