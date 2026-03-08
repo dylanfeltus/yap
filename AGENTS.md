@@ -11,3 +11,9 @@
 - No secrets or PII in comments or variable names
 - Imports should be used — flag dead imports
 - Functions over 50 lines should be flagged for refactoring consideration
+
+## Database migrations
+
+- NEVER use `prisma db push --force-reset` — this wipes all data
+- Use `prisma migrate dev` for schema changes
+- Always back up dev.db before running migrations

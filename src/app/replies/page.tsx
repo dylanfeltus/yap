@@ -56,7 +56,30 @@ interface ReplyCandidate {
   replySuggestions: string; // JSON
   status: string; // new | replied | skipped
   repliedAt: string | null;
+  tweetedAt: string | null;
   createdAt: string;
+}
+
+function getFreshnessBadge(createdAt: string): { label: string; color: string; emoji: string } {
+  const now = Date.now();
+  const created = new Date(createdAt).getTime();
+  const hoursAgo = (now - created) / (1000 * 60 * 60);
+
+  if (hoursAgo < 2) return { label: "HOT", color: "bg-red-500/20 text-red-400", emoji: "🔥" };
+  if (hoursAgo < 6) return { label: "WARM", color: "bg-orange-500/20 text-orange-400", emoji: "🟠" };
+  if (hoursAgo < 24) return { label: "COOL", color: "bg-blue-500/20 text-blue-400", emoji: "🔵" };
+  return { label: "COLD", color: "bg-zinc-700/40 text-zinc-500", emoji: "🥶" };
+}
+
+function timeAgo(createdAt: string): string {
+  const now = Date.now();
+  const created = new Date(createdAt).getTime();
+  const mins = Math.floor((now - created) / (1000 * 60));
+  if (mins < 60) return `${mins}m ago`;
+  const hours = Math.floor(mins / 60);
+  if (hours < 24) return `${hours}h ago`;
+  const days = Math.floor(hours / 24);
+  return `${days}d ago`;
 }
 
 interface ReplyTarget {
@@ -149,7 +172,18 @@ export default function RepliesPage() {
   }
 
   function copyToClipboard(text: string, key: string) {
-    navigator.clipboard.writeText(text);
+    if (navigator.clipboard && window.isSecureContext) {
+      navigator.clipboard.writeText(text);
+    } else {
+      const textarea = document.createElement("textarea");
+      textarea.value = text;
+      textarea.style.position = "fixed";
+      textarea.style.opacity = "0";
+      document.body.appendChild(textarea);
+      textarea.select();
+      document.execCommand("copy");
+      document.body.removeChild(textarea);
+    }
     setCopiedKeys((prev) => ({ ...prev, [key]: true }));
     setTimeout(() => {
       setCopiedKeys((prev) => ({ ...prev, [key]: false }));
@@ -293,8 +327,22 @@ export default function RepliesPage() {
                           </div>
                         </div>
 
-                        {/* Status badge + actions */}
+                        {/* Freshness + Status badge + actions */}
                         <div className="flex items-center gap-2 shrink-0">
+                          {(() => {
+                            const freshness = getFreshnessBadge(candidate.tweetedAt || candidate.createdAt);
+                            return (
+                              <Badge
+                                variant="outline"
+                                className={cn(
+                                  "text-[10px] uppercase tracking-wider border-0",
+                                  freshness.color
+                                )}
+                              >
+                                {freshness.emoji} {freshness.label} · {timeAgo(candidate.tweetedAt || candidate.createdAt)}
+                              </Badge>
+                            );
+                          })()}
                           <Badge
                             variant="outline"
                             className={cn(
@@ -326,7 +374,7 @@ export default function RepliesPage() {
 
                       {/* Engagement stats */}
                       <div className="flex flex-wrap gap-2">
-                        {engagement.views > 0 && (
+                        {(engagement.views ?? 0) > 0 && (
                           <Badge
                             variant="outline"
                             className="border-zinc-700 text-zinc-400 text-[11px]"
@@ -338,20 +386,24 @@ export default function RepliesPage() {
                           variant="outline"
                           className="border-zinc-700 text-zinc-400 text-[11px]"
                         >
-                          {engagement.likes.toLocaleString()} likes
+                          {(engagement.likes ?? 0).toLocaleString()} likes
                         </Badge>
+                        {engagement.retweets != null && (
                         <Badge
                           variant="outline"
                           className="border-zinc-700 text-zinc-400 text-[11px]"
                         >
                           {engagement.retweets.toLocaleString()} retweets
                         </Badge>
+                        )}
+                        {engagement.replies != null && (
                         <Badge
                           variant="outline"
                           className="border-zinc-700 text-zinc-400 text-[11px]"
                         >
                           {engagement.replies.toLocaleString()} replies
                         </Badge>
+                        )}
                       </div>
 
                       {/* Reply suggestions */}
@@ -514,9 +566,14 @@ export default function RepliesPage() {
                     >
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-1.5">
-                          <p className="truncate text-sm font-medium text-zinc-200">
+                          <a
+                            href={`https://x.com/${target.accountHandle}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="truncate text-sm font-medium text-zinc-200 hover:text-indigo-400 transition-colors"
+                          >
                             @{target.accountHandle}
-                          </p>
+                          </a>
                           {target.isActive ? (
                             <Eye className="h-3 w-3 text-green-500/60 shrink-0" />
                           ) : (

@@ -5,12 +5,20 @@ export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
   const status = searchParams.get("status");
 
+  const twentyFourHoursAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
+
   const where: Record<string, unknown> = {};
   if (status) where.status = status;
 
+  // Auto-filter: only show candidates tweeted in the last 24h
+  where.OR = [
+    { tweetedAt: { gte: twentyFourHoursAgo } },
+    { tweetedAt: null, createdAt: { gte: twentyFourHoursAgo } },
+  ];
+
   const candidates = await prisma.replyCandidate.findMany({
     where,
-    orderBy: { createdAt: "desc" },
+    orderBy: [{ tweetedAt: "desc" }, { createdAt: "desc" }],
   });
 
   return NextResponse.json(candidates);
@@ -28,6 +36,7 @@ export async function POST(request: NextRequest) {
       engagement: JSON.stringify(body.engagement || {}),
       platform: body.platform || "X",
       replySuggestions: JSON.stringify(body.replySuggestions || []),
+      tweetedAt: body.tweetedAt ? new Date(body.tweetedAt) : null,
       status: "new",
     },
   });

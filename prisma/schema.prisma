@@ -74,6 +74,7 @@ model ReplyCandidate {
   replySuggestions String   @default("[]") // JSON array
   status           String   @default("new") // new, replied, skipped
   repliedAt        DateTime?
+  tweetedAt        DateTime?
   createdAt        DateTime @default(now())
 }
 

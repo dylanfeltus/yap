@@ -1,92 +1,120 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
-import { fetchTweetMetrics } from "@/lib/x-api";
+import { fetchUserTimeline } from "@/lib/x-api";
 
 export async function POST() {
   try {
-    // Find all posted tweets that have an externalId (X tweet ID)
-    const postedTweets = await prisma.scheduledPost.findMany({
-      where: {
-        status: "posted",
-        platform: "X",
-        externalId: { not: null },
-      },
-      include: {
-        draft: true,
-      },
+    // Get the connected X account
+    const xAccount = await prisma.xAccount.findFirst({
+      orderBy: { createdAt: "desc" },
     });
 
-    if (postedTweets.length === 0) {
+    if (!xAccount) {
+      return NextResponse.json(
+        { success: false, error: "No X account connected" },
+        { status: 400 }
+      );
+    }
+
+    // Fetch recent tweets directly from user's timeline
+    const tweets = await fetchUserTimeline(xAccount.userId, 50);
+
+    if (tweets.length === 0) {
       return NextResponse.json({
         success: true,
-        message: "No posted tweets to refresh",
+        message: "No tweets found",
         updated: 0,
       });
     }
 
+    let created = 0;
     let updated = 0;
-    const errors: string[] = [];
 
-    for (const post of postedTweets) {
-      if (!post.externalId) continue;
+    for (const tweet of tweets) {
+      const m = tweet.public_metrics;
 
-      try {
-        const metrics = await fetchTweetMetrics(post.externalId);
+      // Check if we already track this tweet
+      const existing = await prisma.analytics.findFirst({
+        where: { externalId: tweet.id },
+      });
 
-        if (!metrics) {
-          errors.push(`Failed to fetch metrics for tweet ${post.externalId}`);
-          continue;
-        }
-
-        // Check if analytics already exists for this post
-        const existing = await prisma.analytics.findFirst({
-          where: { scheduledPostId: post.id },
+      if (existing) {
+        await prisma.analytics.update({
+          where: { id: existing.id },
+          data: {
+            impressions: m.impression_count,
+            likes: m.like_count,
+            retweets: m.retweet_count,
+            bookmarks: m.bookmark_count,
+            replies: m.reply_count,
+            fetchedAt: new Date(),
+          },
+        });
+        updated++;
+      } else {
+        // Check if a scheduled post already exists for this tweet (posted via our pipeline)
+        // Thread posts store IDs as comma-separated, so check both exact and contains match
+        const existingPost = await prisma.scheduledPost.findFirst({
+          where: {
+            OR: [
+              { externalId: tweet.id },
+              { externalId: { contains: tweet.id } },
+            ],
+          },
         });
 
-        if (existing) {
-          // Update existing analytics
-          await prisma.analytics.update({
-            where: { id: existing.id },
-            data: {
-              impressions: metrics.impression_count,
-              likes: metrics.like_count,
-              retweets: metrics.retweet_count,
-              bookmarks: metrics.bookmark_count,
-              replies: metrics.reply_count,
-              fetchedAt: new Date(),
-            },
-          });
+        let scheduledPostId: string;
+
+        if (existingPost) {
+          // Link analytics to the existing scheduled post — no duplicate
+          scheduledPostId = existingPost.id;
         } else {
-          // Create new analytics record
-          await prisma.analytics.create({
+          // External tweet not posted via our pipeline — create placeholder
+          const draft = await prisma.draft.create({
             data: {
-              scheduledPostId: post.id,
+              content: tweet.text,
               platform: "X",
-              externalId: post.externalId,
-              impressions: metrics.impression_count,
-              likes: metrics.like_count,
-              retweets: metrics.retweet_count,
-              bookmarks: metrics.bookmark_count,
-              replies: metrics.reply_count,
+              lanes: "[]",
+              status: "posted",
             },
           });
+
+          const scheduledPost = await prisma.scheduledPost.create({
+            data: {
+              draftId: draft.id,
+              platform: "X",
+              externalId: tweet.id,
+              scheduledAt: new Date(tweet.created_at),
+              postedAt: new Date(tweet.created_at),
+              status: "posted",
+            },
+          });
+
+          scheduledPostId = scheduledPost.id;
         }
 
-        updated++;
-      } catch (error) {
-        console.error(`Error fetching metrics for ${post.externalId}:`, error);
-        errors.push(
-          `${post.externalId}: ${error instanceof Error ? error.message : "unknown error"}`
-        );
+        await prisma.analytics.create({
+          data: {
+            scheduledPostId,
+            platform: "X",
+            externalId: tweet.id,
+            impressions: m.impression_count,
+            likes: m.like_count,
+            retweets: m.retweet_count,
+            bookmarks: m.bookmark_count,
+            replies: m.reply_count,
+          },
+        });
+        created++;
       }
     }
 
     return NextResponse.json({
       success: true,
-      message: `Refreshed ${updated} of ${postedTweets.length} tweets`,
+      message: `Imported ${created} new, updated ${updated} existing`,
+      created,
       updated,
-      total: postedTweets.length,
-      errors: errors.length > 0 ? errors : undefined,
+      total: tweets.length,
     });
   } catch (error) {
     console.error("Analytics refresh error:", error);
