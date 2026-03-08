@@ -52,30 +52,44 @@ export async function POST() {
         });
         updated++;
       } else {
-        // We need a scheduledPost to link to — create a placeholder
-        const draft = await prisma.draft.create({
-          data: {
-            content: tweet.text,
-            platform: "X",
-            lanes: "[]",
-            status: "posted",
-          },
+        // Check if a scheduled post already exists for this tweet (posted via our pipeline)
+        const existingPost = await prisma.scheduledPost.findFirst({
+          where: { externalId: tweet.id },
         });
 
-        const scheduledPost = await prisma.scheduledPost.create({
-          data: {
-            draftId: draft.id,
-            platform: "X",
-            externalId: tweet.id,
-            scheduledAt: new Date(tweet.created_at),
-            postedAt: new Date(tweet.created_at),
-            status: "posted",
-          },
-        });
+        let scheduledPostId: string;
+
+        if (existingPost) {
+          // Link analytics to the existing scheduled post — no duplicate
+          scheduledPostId = existingPost.id;
+        } else {
+          // External tweet not posted via our pipeline — create placeholder
+          const draft = await prisma.draft.create({
+            data: {
+              content: tweet.text,
+              platform: "X",
+              lanes: "[]",
+              status: "posted",
+            },
+          });
+
+          const scheduledPost = await prisma.scheduledPost.create({
+            data: {
+              draftId: draft.id,
+              platform: "X",
+              externalId: tweet.id,
+              scheduledAt: new Date(tweet.created_at),
+              postedAt: new Date(tweet.created_at),
+              status: "posted",
+            },
+          });
+
+          scheduledPostId = scheduledPost.id;
+        }
 
         await prisma.analytics.create({
           data: {
-            scheduledPostId: scheduledPost.id,
+            scheduledPostId,
             platform: "X",
             externalId: tweet.id,
             impressions: m.impression_count,

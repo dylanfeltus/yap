@@ -15,6 +15,8 @@ const MAX_RETRIES = 3;
 export async function publishScheduledPosts(): Promise<PublishResult> {
   const now = new Date();
   
+  // Atomically claim queued posts by transitioning to "publishing" status
+  // This prevents duplicate posts if multiple workers run concurrently
   const duePosts = await prisma.scheduledPost.findMany({
     where: {
       status: "queued",
@@ -22,9 +24,7 @@ export async function publishScheduledPosts(): Promise<PublishResult> {
         lte: now,
       },
     },
-    include: {
-      draft: true,
-    },
+    select: { id: true },
     orderBy: {
       scheduledAt: "asc",
     },
@@ -36,12 +36,24 @@ export async function publishScheduledPosts(): Promise<PublishResult> {
     skipped: 0,
   };
 
-  for (const post of duePosts) {
+  for (const { id } of duePosts) {
+    // Atomic claim: only proceed if we successfully transition from queued → publishing
+    const claimed = await prisma.scheduledPost.updateMany({
+      where: { id, status: "queued" },
+      data: { status: "publishing" },
+    });
+
+    if (claimed.count === 0) {
+      // Another worker already claimed this post
+      result.skipped++;
+      continue;
+    }
+
     try {
-      await publishPost(post.id);
+      await publishPost(id);
       result.published++;
     } catch (error) {
-      console.error(`Failed to publish post ${post.id}:`, error);
+      console.error(`Failed to publish post ${id}:`, error);
       result.failed++;
     }
   }
@@ -62,8 +74,8 @@ export async function publishPost(scheduledPostId: string): Promise<string[]> {
     throw new Error(`Scheduled post ${scheduledPostId} not found`);
   }
 
-  if (post.status !== "queued") {
-    throw new Error(`Post ${scheduledPostId} is not queued (status: ${post.status})`);
+  if (post.status !== "queued" && post.status !== "publishing") {
+    throw new Error(`Post ${scheduledPostId} is not publishable (status: ${post.status})`);
   }
 
   const draft = post.draft;
@@ -80,12 +92,32 @@ export async function publishPost(scheduledPostId: string): Promise<string[]> {
       }
 
       const result = await postThread(threadParts);
+      tweetIds = result.tweetIds;
       
-      if (result.error) {
+      if (result.error && tweetIds.length === 0) {
         throw new Error(result.error);
       }
       
-      tweetIds = result.tweetIds;
+      // Partial success: some tweets posted but thread failed mid-way
+      // Save what we have rather than retrying and duplicating early tweets
+      if (result.error && tweetIds.length > 0) {
+        await prisma.scheduledPost.update({
+          where: { id: scheduledPostId },
+          data: {
+            status: "failed",
+            postedAt: new Date(),
+            externalId: tweetIds.join(","),
+            error: JSON.stringify({
+              message: `Partial thread: ${tweetIds.length}/${threadParts.length} posted. ${result.error}`,
+              postedParts: tweetIds.length,
+              totalParts: threadParts.length,
+              failedAt: new Date().toISOString(),
+            }),
+          },
+        });
+
+        return tweetIds;
+      }
     } else {
       // Post single tweet
       const tweetId = await postTweet(draft.content);
