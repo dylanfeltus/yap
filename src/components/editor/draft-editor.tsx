@@ -185,6 +185,7 @@ export function DraftEditor({
             <SelectContent>
               <SelectItem value="X">X</SelectItem>
               <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+              <SelectItem value="Article">Article</SelectItem>
             </SelectContent>
           </Select>
 

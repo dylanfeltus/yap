@@ -13,7 +13,7 @@ model Idea {
   notes     String   @default("")
   lanes     String   @default("[]") // JSON array
   products  String   @default("[]") // JSON array
-  platform  String   @default("Both") // X, LinkedIn, Both
+  platform  String   @default("Both") // X, LinkedIn, Article, Both
   status    String   @default("idea") // idea, drafted, scheduled, posted
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -25,7 +25,7 @@ model Draft {
   ideaId         String?
   idea           Idea?           @relation(fields: [ideaId], references: [id])
   content        String
-  platform       String          @default("X") // X, LinkedIn
+  platform       String          @default("X") // X, LinkedIn, Article
   suggestedTime  DateTime?
   lanes          String          @default("[]") // JSON array
   products       String          @default("[]") // JSON array
@@ -116,7 +116,7 @@ model SlotConfig {
   id          String   @id @default(cuid())
   dayOfWeek   Int      // 0=Mon, 1=Tue, ... 6=Sun
   timeBlock   String   // "morning" | "afternoon" | "evening"
-  platform    String   // "X" | "LinkedIn"
+  platform    String   // "X" | "LinkedIn" | "Article"
   targetCount Int      @default(1)
   startHour   Int      // e.g. 8 for morning, 13 for afternoon, 18 for evening
   endHour     Int      // e.g. 12, 17, 21

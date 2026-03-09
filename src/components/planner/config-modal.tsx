@@ -136,7 +136,7 @@ export function ConfigModal({ open, onOpenChange, onSaved }: ConfigModalProps) {
                     {PLATFORMS.map((platform) => (
                       <div key={platform} className="flex items-center justify-between mb-1 last:mb-0">
                         <span className="text-[10px] text-zinc-400">
-                          {platform === "LinkedIn" ? "in" : "𝕏"}
+                          {platform === "LinkedIn" ? "in" : platform === "Article" ? "A" : "𝕏"}
                         </span>
                         <input
                           type="number"
