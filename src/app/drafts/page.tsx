@@ -48,6 +48,7 @@ import {
   MessageSquare,
   Paperclip,
 } from "lucide-react";
+import { useLiveUpdates } from "@/lib/use-live-updates";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -176,6 +177,8 @@ export default function DraftsPage() {
   useEffect(() => {
     fetchDrafts();
   }, [fetchDrafts]);
+
+  useLiveUpdates("drafts", fetchDrafts);
 
   // -------------------------------------------------------------------------
   // Create draft

@@ -26,6 +26,7 @@ import type { ReplyTarget } from "@/components/replies/target-card";
 import { SortControls } from "@/components/replies/sort-controls";
 import type { SortMode } from "@/components/replies/sort-controls";
 import { RefreshButton } from "@/components/replies/refresh-button";
+import { useLiveUpdates } from "@/lib/use-live-updates";
 
 type StatusFilter = "new" | "replied" | "skipped";
 
@@ -63,6 +64,9 @@ export default function RepliesPage() {
 
   useEffect(() => { fetchCandidates(); }, [fetchCandidates]);
   useEffect(() => { fetchTargets(); }, [fetchTargets]);
+
+  const fetchAll = useCallback(() => { fetchCandidates(); fetchTargets(); }, [fetchCandidates, fetchTargets]);
+  useLiveUpdates("replies", fetchAll);
 
   const sortedCandidates = useMemo(() => {
     const sorted = [...candidates];

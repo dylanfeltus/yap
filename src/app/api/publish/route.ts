@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { publishScheduledPosts } from "@/lib/publisher";
+import { emit } from "@/lib/events";
 
 /**
  * POST /api/publish - Trigger publishing of all due scheduled posts
@@ -9,6 +10,9 @@ export async function POST() {
   try {
     const result = await publishScheduledPosts();
     
+    emit("drafts");
+    emit("scheduler");
+    emit("planner");
     return NextResponse.json({
       success: true,
       ...result,

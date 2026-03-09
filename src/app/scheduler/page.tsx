@@ -39,6 +39,7 @@ import {
   Calendar,
   ArrowRight,
 } from "lucide-react";
+import { useLiveUpdates } from "@/lib/use-live-updates";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -184,6 +185,14 @@ export default function SchedulerPage() {
       setLoading(false)
     );
   }, [fetchPosts, fetchTimeSlots, fetchDrafts]);
+
+  const fetchAll = useCallback(() => {
+    fetchPosts();
+    fetchTimeSlots();
+    fetchDrafts();
+  }, [fetchPosts, fetchTimeSlots, fetchDrafts]);
+
+  useLiveUpdates("scheduler", fetchAll);
 
   // --- Actions -------------------------------------------------------------
 

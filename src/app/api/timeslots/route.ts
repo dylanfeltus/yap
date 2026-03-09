@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function GET() {
   const slots = await prisma.timeSlot.findMany({
@@ -20,5 +21,6 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  emit("scheduler");
   return NextResponse.json(slot, { status: 201 });
 }

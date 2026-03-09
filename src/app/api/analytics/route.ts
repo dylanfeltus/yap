@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function GET() {
   const analytics = await prisma.analytics.findMany({
@@ -31,5 +32,6 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  emit("analytics");
   return NextResponse.json(record, { status: 201 });
 }

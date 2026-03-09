@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { fetchUserTimeline } from "@/lib/x-api";
+import { emit } from "@/lib/events";
 
 export async function POST() {
   try {
@@ -109,6 +110,7 @@ export async function POST() {
       }
     }
 
+    emit("analytics");
     return NextResponse.json({
       success: true,
       message: `Imported ${created} new, updated ${updated} existing`,

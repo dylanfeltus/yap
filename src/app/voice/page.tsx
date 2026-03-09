@@ -24,6 +24,7 @@ import {
 import { Label } from "@/components/ui/label";
 import { Separator } from "@/components/ui/separator";
 import { Mic, Plus, Trash2, Edit, X } from "lucide-react";
+import { useLiveUpdates } from "@/lib/use-live-updates";
 
 interface VoiceProfile {
   id: string;
@@ -88,6 +89,8 @@ export default function VoiceProfilesPage() {
   useEffect(() => {
     fetchProfiles();
   }, [fetchProfiles]);
+
+  useLiveUpdates("voice", fetchProfiles);
 
   function resetForm() {
     setForm({ ...EMPTY_FORM });

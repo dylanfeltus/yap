@@ -9,6 +9,7 @@ import {
 import { prisma } from "../lib/prisma.js";
 import { publishPost } from "../lib/publisher.js";
 import { getWeekStart, getDateForDay, pickTimeInSlot } from "../lib/slot-utils.js";
+import { emit } from "../lib/events.js";
 
 const server = new Server(
   {
@@ -276,6 +277,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
         });
 
+        emit("drafts");
+        emit("planner");
+
         return {
           content: [
             {
@@ -351,6 +355,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           data: updateData,
         });
 
+        emit("drafts");
+        emit("planner");
+
         return {
           content: [
             {
@@ -391,6 +398,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           data: { status: "scheduled" },
         });
 
+        emit("scheduler");
+        emit("drafts");
+        emit("planner");
+
         return {
           content: [
             {
@@ -427,6 +438,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
         // Publish immediately
         const tweetIds = await publishPost(scheduledPost.id);
+
+        emit("drafts");
+        emit("scheduler");
+        emit("planner");
 
         return {
           content: [
@@ -552,6 +567,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             keywords: JSON.stringify(args.keywords || []),
           },
         });
+
+        emit("replies");
 
         return {
           content: [

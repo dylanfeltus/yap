@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function PATCH(
   request: NextRequest,
@@ -19,6 +20,7 @@ export async function PATCH(
     data,
   });
 
+  emit("voice");
   return NextResponse.json(profile);
 }
 
@@ -28,5 +30,6 @@ export async function DELETE(
 ) {
   const { id } = await params;
   await prisma.voiceProfile.delete({ where: { id } });
+  emit("voice");
   return NextResponse.json({ success: true });
 }
