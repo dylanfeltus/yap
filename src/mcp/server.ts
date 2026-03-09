@@ -9,7 +9,20 @@ import {
 import { prisma } from "../lib/prisma.js";
 import { publishPost } from "../lib/publisher.js";
 import { getWeekStart, getDateForDay, pickTimeInSlot } from "../lib/slot-utils.js";
-import { emit } from "../lib/events.js";
+
+// The MCP server runs in a separate process, so the in-memory event emitter
+// can't reach SSE clients. Instead, POST to the Next.js API to trigger events.
+const APP_URL = process.env.APP_URL || "http://localhost:3000";
+
+function emit(channel: string): void {
+  fetch(`${APP_URL}/api/events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ channel }),
+  }).catch(() => {
+    // Best-effort — the web app may not be running
+  });
+}
 
 const server = new Server(
   {

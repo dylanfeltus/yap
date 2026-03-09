@@ -30,6 +30,7 @@ export async function POST(request: NextRequest) {
   });
 
   emit("scheduler");
+  emit("drafts");
   emit("planner");
   return NextResponse.json(post, { status: 201 });
 }

@@ -193,6 +193,7 @@ export default function SchedulerPage() {
   }, [fetchPosts, fetchTimeSlots, fetchDrafts]);
 
   useLiveUpdates("scheduler", fetchAll);
+  useLiveUpdates("drafts", fetchAll);
 
   // --- Actions -------------------------------------------------------------
 

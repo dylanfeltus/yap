@@ -43,6 +43,7 @@ export async function DELETE(
   }
 
   emit("scheduler");
+  emit("drafts");
   emit("planner");
   return NextResponse.json({ success: true });
 }

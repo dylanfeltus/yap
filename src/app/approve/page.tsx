@@ -121,6 +121,7 @@ export default function ApprovePage() {
   }, [fetchData]);
 
   useLiveUpdates("drafts", fetchData);
+  useLiveUpdates("scheduler", fetchData);
 
   function handleOpenEditor(draft: Draft) {
     setEditingDraft(draft);

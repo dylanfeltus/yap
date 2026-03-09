@@ -1,10 +1,19 @@
-import { subscribe, unsubscribe } from "@/lib/events";
+import { NextRequest, NextResponse } from "next/server";
+import { emit, subscribe, unsubscribe } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
 
-// Note: The event emitter is in-process, so events emitted from the MCP server
-// (which runs as a separate process via `npm run mcp`) won't reach SSE clients.
-// For cross-process support, swap the emitter for a DB-poll or Redis pub/sub approach.
+// POST /api/events — allows cross-process callers (e.g. MCP server) to trigger
+// SSE events via HTTP instead of relying on the in-process event emitter.
+export async function POST(request: NextRequest) {
+  const body = await request.json();
+  const channel = body?.channel;
+  if (typeof channel !== "string" || !channel) {
+    return NextResponse.json({ error: "missing channel" }, { status: 400 });
+  }
+  emit(channel);
+  return NextResponse.json({ ok: true });
+}
 
 export async function GET() {
   let cleanup: (() => void) | undefined;
