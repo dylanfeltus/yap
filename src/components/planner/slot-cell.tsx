@@ -62,7 +62,7 @@ export function SlotCell({ dayOfWeek, timeBlock, fills, isToday, onQuickCreate }
   return (
     <div
       className={cn(
-        "min-h-[100px] min-w-0 rounded-lg border p-2 transition-colors overflow-hidden",
+        "min-h-[100px] min-w-0 rounded-lg border p-2 transition-colors",
         isToday ? "ring-1 ring-indigo-500/40" : "",
         hasSlots ? "" : "border-dashed border-zinc-700/50"
       )}
