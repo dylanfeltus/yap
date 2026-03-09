@@ -2,10 +2,24 @@ import { subscribe, unsubscribe } from "@/lib/events";
 
 export const dynamic = "force-dynamic";
 
+// Note: The event emitter is in-process, so events emitted from the MCP server
+// (which runs as a separate process via `npm run mcp`) won't reach SSE clients.
+// For cross-process support, swap the emitter for a DB-poll or Redis pub/sub approach.
+
 export async function GET() {
+  let cleanup: (() => void) | undefined;
+
   const stream = new ReadableStream({
     start(controller) {
       const encoder = new TextEncoder();
+      let cleaned = false;
+
+      cleanup = () => {
+        if (cleaned) return;
+        cleaned = true;
+        unsubscribe(listener);
+        clearInterval(keepAlive);
+      };
 
       const listener = (channel: string) => {
         try {
@@ -13,8 +27,7 @@ export async function GET() {
             encoder.encode(`data: ${JSON.stringify({ channel })}\n\n`)
           );
         } catch {
-          // Connection closed
-          cleanup();
+          cleanup!();
         }
       };
 
@@ -23,23 +36,14 @@ export async function GET() {
         try {
           controller.enqueue(encoder.encode(": keep-alive\n\n"));
         } catch {
-          cleanup();
+          cleanup!();
         }
       }, 30_000);
 
-      function cleanup() {
-        unsubscribe(listener);
-        clearInterval(keepAlive);
-      }
-
       subscribe(listener);
-
-      // Handle stream cancellation
-      // The cancel callback is invoked when the client disconnects
     },
     cancel() {
-      // ReadableStream cancel is called on disconnect — cleanup happens via
-      // the try/catch in listener and keepAlive above
+      cleanup?.();
     },
   });
 
