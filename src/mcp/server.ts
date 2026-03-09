@@ -12,7 +12,7 @@ import { getWeekStart, getDateForDay, pickTimeInSlot } from "../lib/slot-utils.j
 
 // The MCP server runs in a separate process, so the in-memory event emitter
 // can't reach SSE clients. Instead, POST to the Next.js API to trigger events.
-const APP_URL = process.env.APP_URL || "http://localhost:3000";
+const APP_URL = process.env.APP_URL || "http://localhost:3333";
 
 function emit(channel: string): void {
   fetch(`${APP_URL}/api/events`, {
