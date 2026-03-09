@@ -46,4 +46,5 @@ export type DraftStatus = "all" | "draft" | "approved" | "scheduled" | "posted" 
 export const PLATFORM_LIMITS: Record<string, number> = {
   X: 280,
   LinkedIn: 3000,
+  Article: 50000,
 };
