@@ -450,24 +450,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
 
         // Publish immediately
-        const tweetIds = await publishPost(scheduledPost.id);
+        try {
+          const tweetIds = await publishPost(scheduledPost.id);
 
-        emit("drafts");
-        emit("scheduler");
-        emit("planner");
+          emit("drafts");
+          emit("scheduler");
+          emit("planner");
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                success: true,
-                tweetIds,
-                scheduledPostId: scheduledPost.id,
-              }, null, 2),
-            },
-          ],
-        };
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  success: true,
+                  tweetIds,
+                  scheduledPostId: scheduledPost.id,
+                }, null, 2),
+              },
+            ],
+          };
+        } catch (publishError) {
+          // Emit even on failure — publishPost writes DB changes before throwing
+          emit("drafts");
+          emit("scheduler");
+          emit("planner");
+          throw publishError;
+        }
       }
 
       case "get_analytics": {

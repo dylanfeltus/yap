@@ -54,7 +54,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
+
+    // Emit even on failure — publishPost writes status changes before throwing
+    emit("drafts");
+    emit("scheduler");
+    emit("planner");
+
     return NextResponse.json(
       {
         success: false,
