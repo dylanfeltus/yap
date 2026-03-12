@@ -14,15 +14,15 @@ export async function GET() {
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
-  const data: Record<string, unknown> = {
-    draftId: body.draftId,
-    platform: body.platform,
-    scheduledAt: new Date(body.scheduledAt),
-    status: "queued",
-  };
-  if (body.slotId) data.slotId = body.slotId;
-
-  const post = await prisma.scheduledPost.create({ data });
+  const post = await prisma.scheduledPost.create({
+    data: {
+      draftId: body.draftId,
+      platform: body.platform,
+      scheduledAt: new Date(body.scheduledAt),
+      status: "queued",
+      ...(body.slotId ? { slotId: body.slotId } : {}),
+    },
+  });
 
   // Update draft status to scheduled
   await prisma.draft.update({
