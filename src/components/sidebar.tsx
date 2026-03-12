@@ -22,7 +22,7 @@ const navItems = [
   { label: "Drafts", href: "/drafts", icon: FileText },
   { label: "Ideas", href: "/ideas", icon: Lightbulb },
   { label: "Reply Guy", href: "/replies", icon: MessageSquare },
-  { label: "Settings", href: "/voice", icon: Settings },
+  { label: "Settings", href: "/settings", icon: Settings },
 ];
 
 interface XAccountStatus {
