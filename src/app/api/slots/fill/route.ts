@@ -48,8 +48,12 @@ export async function GET(request: NextRequest) {
           filledCount: scheduledPosts.length,
           scheduledPosts: scheduledPosts.map((sp) => ({
             id: sp.id,
+            draftId: sp.draftId,
             content: sp.draft.content,
+            platform: sp.draft.platform,
+            draftStatus: sp.draft.status,
             status: sp.status,
+            scheduledAt: sp.scheduledAt.toISOString(),
           })),
         };
       })

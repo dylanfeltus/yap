@@ -44,6 +44,8 @@ model ScheduledPost {
   id          String      @id @default(cuid())
   draftId     String
   draft       Draft       @relation(fields: [draftId], references: [id])
+  slotId      String?     // FK to SlotConfig for explicit slot linking
+  slot        SlotConfig? @relation(fields: [slotId], references: [id])
   platform    String
   scheduledAt DateTime
   postedAt    DateTime?
@@ -124,6 +126,7 @@ model SlotConfig {
   updatedAt   DateTime @updatedAt
 
   @@unique([dayOfWeek, timeBlock, platform])
+  scheduledPosts ScheduledPost[]
 }
 
 model XAccount {
