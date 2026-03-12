@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function POST() {
   const bearerToken = process.env.X_BEARER_TOKEN;
@@ -92,6 +93,7 @@ export async function POST() {
       }
     }
 
+    emit("replies");
     return NextResponse.json({ newCandidates, checkedHandles });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Unknown error";

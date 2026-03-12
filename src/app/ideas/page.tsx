@@ -32,6 +32,7 @@ import {
 } from "@/components/ui/select";
 import { Label } from "@/components/ui/label";
 import { Plus, Search, Lightbulb, X, Trash2, Edit } from "lucide-react";
+import { useLiveUpdates } from "@/lib/use-live-updates";
 
 // ---------------------------------------------------------------------------
 // Types
@@ -132,6 +133,8 @@ export default function IdeasPage() {
   useEffect(() => {
     fetchIdeas();
   }, [fetchIdeas]);
+
+  useLiveUpdates("ideas", fetchIdeas);
 
   // Debounced search
   const [debouncedSearch, setDebouncedSearch] = useState("");

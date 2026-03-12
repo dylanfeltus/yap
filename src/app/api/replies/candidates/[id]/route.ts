@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function PATCH(
   request: NextRequest,
@@ -19,5 +20,6 @@ export async function PATCH(
     data,
   });
 
+  emit("replies");
   return NextResponse.json(candidate);
 }

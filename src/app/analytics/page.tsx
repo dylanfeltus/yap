@@ -9,6 +9,7 @@ import {
   RefreshCw,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { useLiveUpdates } from "@/lib/use-live-updates";
 import { Card, CardContent } from "@/components/ui/card";
 import { StatCard } from "@/components/analytics/stat-card";
 import { ImpressionsChart } from "@/components/analytics/impressions-chart";
@@ -93,6 +94,8 @@ export default function AnalyticsPage() {
   useEffect(() => {
     fetchData();
   }, []);
+
+  useLiveUpdates("analytics", fetchData);
 
   async function fetchData() {
     try {

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function PATCH(
   request: NextRequest,
@@ -18,6 +19,7 @@ export async function PATCH(
     data,
   });
 
+  emit("scheduler");
   return NextResponse.json(slot);
 }
 
@@ -27,5 +29,6 @@ export async function DELETE(
 ) {
   const { id } = await params;
   await prisma.timeSlot.delete({ where: { id } });
+  emit("scheduler");
   return NextResponse.json({ success: true });
 }

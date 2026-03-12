@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function PATCH(
   request: NextRequest,
@@ -20,6 +21,8 @@ export async function PATCH(
     data,
   });
 
+  emit("scheduler");
+  emit("planner");
   return NextResponse.json(post);
 }
 
@@ -39,5 +42,8 @@ export async function DELETE(
     });
   }
 
+  emit("scheduler");
+  emit("drafts");
+  emit("planner");
   return NextResponse.json({ success: true });
 }

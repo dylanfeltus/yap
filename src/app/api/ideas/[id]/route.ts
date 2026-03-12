@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function GET(
   _request: NextRequest,
@@ -38,6 +39,7 @@ export async function PATCH(
     data,
   });
 
+  emit("ideas");
   return NextResponse.json(idea);
 }
 
@@ -47,5 +49,6 @@ export async function DELETE(
 ) {
   const { id } = await params;
   await prisma.idea.delete({ where: { id } });
+  emit("ideas");
   return NextResponse.json({ success: true });
 }

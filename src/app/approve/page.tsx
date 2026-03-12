@@ -21,6 +21,7 @@ import {
   Loader2,
 } from "lucide-react";
 import { DraftEditor } from "@/components/editor/draft-editor";
+import { useLiveUpdates } from "@/lib/use-live-updates";
 
 function formatRelativeTime(iso: string): string {
   const diff = Date.now() - new Date(iso).getTime();
@@ -118,6 +119,9 @@ export default function ApprovePage() {
   useEffect(() => {
     fetchData();
   }, [fetchData]);
+
+  useLiveUpdates("drafts", fetchData);
+  useLiveUpdates("scheduler", fetchData);
 
   function handleOpenEditor(draft: Draft) {
     setEditingDraft(draft);

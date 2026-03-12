@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function GET() {
   const posts = await prisma.scheduledPost.findMany({
@@ -28,5 +29,8 @@ export async function POST(request: NextRequest) {
     data: { status: "scheduled" },
   });
 
+  emit("scheduler");
+  emit("drafts");
+  emit("planner");
   return NextResponse.json(post, { status: 201 });
 }

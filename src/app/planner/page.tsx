@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { SlotCell } from "@/components/planner/slot-cell";
 import { ConfigModal } from "@/components/planner/config-modal";
 import { getWeekStart, DAYS, TIME_BLOCKS } from "@/lib/slot-utils";
+import { useLiveUpdates } from "@/lib/use-live-updates";
 
 interface ScheduledPostPreview {
   id: string;
@@ -59,6 +60,8 @@ export default function PlannerPage() {
   useEffect(() => {
     fetchFills();
   }, [fetchFills]);
+
+  useLiveUpdates("planner", fetchFills);
 
   function navigateWeek(delta: number) {
     setWeekStart((prev) => {

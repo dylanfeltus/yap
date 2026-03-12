@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function GET() {
   try {
@@ -56,6 +57,8 @@ export async function POST(request: NextRequest) {
           });
         })
       );
+      emit("slots");
+      emit("planner");
       return NextResponse.json(results, { status: 201 });
     }
 
@@ -83,6 +86,8 @@ export async function POST(request: NextRequest) {
       },
     });
 
+    emit("slots");
+    emit("planner");
     return NextResponse.json(slot, { status: 201 });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to save slot";

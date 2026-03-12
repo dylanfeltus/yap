@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function GET() {
   const profiles = await prisma.voiceProfile.findMany({
@@ -21,5 +22,6 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  emit("voice");
   return NextResponse.json(profile, { status: 201 });
 }

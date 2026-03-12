@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { publishPost } from "@/lib/publisher";
+import { emit } from "@/lib/events";
 
 /**
  * POST /api/publish/now - Immediately publish a draft
@@ -43,6 +44,9 @@ export async function POST(request: NextRequest) {
     // Publish it immediately
     const tweetIds = await publishPost(scheduledPost.id);
 
+    emit("drafts");
+    emit("scheduler");
+    emit("planner");
     return NextResponse.json({
       success: true,
       tweetIds,
@@ -50,7 +54,12 @@ export async function POST(request: NextRequest) {
     });
   } catch (error) {
     const errorMessage = error instanceof Error ? error.message : String(error);
-    
+
+    // Emit even on failure — publishPost writes status changes before throwing
+    emit("drafts");
+    emit("scheduler");
+    emit("planner");
+
     return NextResponse.json(
       {
         success: false,

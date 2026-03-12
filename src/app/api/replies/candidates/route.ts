@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function GET(request: NextRequest) {
   const searchParams = request.nextUrl.searchParams;
@@ -41,5 +42,6 @@ export async function POST(request: NextRequest) {
     },
   });
 
+  emit("replies");
   return NextResponse.json(candidate, { status: 201 });
 }

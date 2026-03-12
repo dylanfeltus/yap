@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { prisma } from "@/lib/prisma";
+import { emit } from "@/lib/events";
 
 export async function PATCH(
   request: NextRequest,
@@ -14,6 +15,8 @@ export async function PATCH(
       data: { targetCount: body.targetCount },
     });
 
+    emit("slots");
+    emit("planner");
     return NextResponse.json(slot);
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to update slot";
@@ -28,6 +31,8 @@ export async function DELETE(
   try {
     const { id } = await params;
     await prisma.slotConfig.delete({ where: { id } });
+    emit("slots");
+    emit("planner");
     return NextResponse.json({ success: true });
   } catch (error) {
     const message = error instanceof Error ? error.message : "Failed to delete slot";

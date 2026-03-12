@@ -10,6 +10,20 @@ import { prisma } from "../lib/prisma.js";
 import { publishPost } from "../lib/publisher.js";
 import { getWeekStart, getDateForDay, pickTimeInSlot } from "../lib/slot-utils.js";
 
+// The MCP server runs in a separate process, so the in-memory event emitter
+// can't reach SSE clients. Instead, POST to the Next.js API to trigger events.
+const APP_URL = process.env.APP_URL || "http://localhost:3333";
+
+function emit(channel: string): void {
+  fetch(`${APP_URL}/api/events`, {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ channel }),
+  }).catch(() => {
+    // Best-effort — the web app may not be running
+  });
+}
+
 const server = new Server(
   {
     name: "yap-social",
@@ -276,6 +290,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           },
         });
 
+        emit("drafts");
+        emit("planner");
+
         return {
           content: [
             {
@@ -351,6 +368,9 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           data: updateData,
         });
 
+        emit("drafts");
+        emit("planner");
+
         return {
           content: [
             {
@@ -391,6 +411,10 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
           data: { status: "scheduled" },
         });
 
+        emit("scheduler");
+        emit("drafts");
+        emit("planner");
+
         return {
           content: [
             {
@@ -426,20 +450,32 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
         });
 
         // Publish immediately
-        const tweetIds = await publishPost(scheduledPost.id);
+        try {
+          const tweetIds = await publishPost(scheduledPost.id);
 
-        return {
-          content: [
-            {
-              type: "text",
-              text: JSON.stringify({
-                success: true,
-                tweetIds,
-                scheduledPostId: scheduledPost.id,
-              }, null, 2),
-            },
-          ],
-        };
+          emit("drafts");
+          emit("scheduler");
+          emit("planner");
+
+          return {
+            content: [
+              {
+                type: "text",
+                text: JSON.stringify({
+                  success: true,
+                  tweetIds,
+                  scheduledPostId: scheduledPost.id,
+                }, null, 2),
+              },
+            ],
+          };
+        } catch (publishError) {
+          // Emit even on failure — publishPost writes DB changes before throwing
+          emit("drafts");
+          emit("scheduler");
+          emit("planner");
+          throw publishError;
+        }
       }
 
       case "get_analytics": {
@@ -552,6 +588,8 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
             keywords: JSON.stringify(args.keywords || []),
           },
         });
+
+        emit("replies");
 
         return {
           content: [
