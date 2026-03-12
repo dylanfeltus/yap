@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MessageSquare, Plus, User, Users, X } from "lucide-react";
+import { MessageSquare, Plus, User, Users, X, Copy, Check } from "lucide-react";
 import { CandidateCard, computeOpportunityScore, computeVelocity } from "@/components/replies/candidate-card";
 import type { ReplyCandidate } from "@/components/replies/candidate-card";
 import { TargetCard } from "@/components/replies/target-card";
@@ -141,7 +141,28 @@ export default function RepliesPage() {
 
   const statusFilters: StatusFilter[] = ["new", "replied", "skipped"];
   const [mobileTargetsOpen, setMobileTargetsOpen] = useState(false);
+  const [promptCopied, setPromptCopied] = useState(false);
   const panelRef = useRef<HTMLDivElement>(null);
+
+  const isFirstTime = !loadingTargets && !loadingCandidates && targets.length === 0 && candidates.length === 0;
+
+  const setupPrompt = `Set up Reply Guy for me. Here's what I need:
+
+1. Add reply targets — these are X/Twitter accounts I want to monitor for reply opportunities. Add accounts that are in my niche, post frequently, and get good engagement. Use POST /replies/targets with { accountHandle: "handle" }.
+
+2. Find recent tweets from those targets that are worth replying to. Look for tweets with good engagement and relevant topics.
+
+3. For each good tweet, create a reply candidate with suggested replies in my voice. Use POST /replies/candidates with the tweet content, engagement stats, and 2-3 reply suggestions.
+
+4. Read my voice profile first (GET /voice) so the reply suggestions match my tone.
+
+Focus on tweets from the last 24 hours. Prioritize tweets with high engagement but few replies (best opportunity window).`;
+
+  const copySetupPrompt = async () => {
+    await navigator.clipboard.writeText(setupPrompt);
+    setPromptCopied(true);
+    setTimeout(() => setPromptCopied(false), 2000);
+  };
 
   // Close mobile panel on outside click
   useEffect(() => {
@@ -184,7 +205,41 @@ export default function RepliesPage() {
         </p>
       </div>
 
-      <div className="flex gap-6">
+      {/* First-time onboarding */}
+      {isFirstTime && (
+        <div className="mx-auto max-w-2xl space-y-4">
+          <div className="overflow-hidden rounded-xl border border-zinc-800 bg-zinc-900">
+            <div className="flex items-center justify-between border-b border-zinc-800 px-4 py-3">
+              <span className="text-xs font-medium text-zinc-500">
+                Give this to your AI agent to get started
+              </span>
+              <button
+                onClick={copySetupPrompt}
+                className={`flex items-center gap-1.5 rounded-lg px-4 py-2 text-sm font-medium transition-all ${
+                  promptCopied
+                    ? "bg-green-500/20 text-green-400"
+                    : "bg-green-500 text-black hover:bg-green-400"
+                }`}
+              >
+                {promptCopied ? (
+                  <Check className="h-4 w-4" />
+                ) : (
+                  <Copy className="h-4 w-4" />
+                )}
+                {promptCopied ? "Copied!" : "Copy prompt"}
+              </button>
+            </div>
+            <pre className="whitespace-pre-wrap p-5 text-[13px] leading-relaxed text-zinc-300 font-mono">
+              {setupPrompt}
+            </pre>
+          </div>
+          <p className="text-center text-xs text-zinc-600">
+            Or add targets manually using the + button below
+          </p>
+        </div>
+      )}
+
+      <div className={`flex gap-6 ${isFirstTime ? "mt-6" : ""}`}>
         {/* Left panel — Candidates */}
         <div className="flex-1 min-w-0 space-y-4">
           <div className="flex items-center justify-between gap-4">
