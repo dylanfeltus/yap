@@ -25,7 +25,7 @@ import { TargetCard } from "@/components/replies/target-card";
 import type { ReplyTarget } from "@/components/replies/target-card";
 import { SortControls } from "@/components/replies/sort-controls";
 import type { SortMode } from "@/components/replies/sort-controls";
-import { RefreshButton } from "@/components/replies/refresh-button";
+
 import { useLiveUpdates } from "@/lib/use-live-updates";
 
 type StatusFilter = "new" | "replied" | "skipped";
@@ -266,7 +266,6 @@ Focus on tweets from the last 24 hours. Prioritize tweets with high engagement b
                   </span>
                 )}
               </Button>
-              <RefreshButton onRefreshComplete={fetchCandidates} />
               <SortControls value={sortMode} onChange={setSortMode} />
             </div>
           </div>
