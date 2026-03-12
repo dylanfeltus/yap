@@ -28,17 +28,29 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   const body = await request.json();
 
-  const candidate = await prisma.replyCandidate.create({
-    data: {
-      externalPostId: body.externalPostId,
-      authorHandle: body.authorHandle,
-      authorName: body.authorName || "",
-      content: body.content,
-      engagement: JSON.stringify(body.engagement || {}),
-      platform: body.platform || "X",
-      replySuggestions: JSON.stringify(body.replySuggestions || []),
-      tweetedAt: body.tweetedAt ? new Date(body.tweetedAt) : null,
-      status: "new",
+  const data = {
+    externalPostId: body.externalPostId,
+    authorHandle: body.authorHandle,
+    authorName: body.authorName || "",
+    content: body.content,
+    engagement: JSON.stringify(body.engagement || {}),
+    platform: body.platform || "X",
+    replySuggestions: JSON.stringify(body.replySuggestions || []),
+    tweetedAt: body.tweetedAt ? new Date(body.tweetedAt) : null,
+    status: "new",
+  };
+
+  // Upsert on externalPostId — update existing instead of failing on dupes
+  const candidate = await prisma.replyCandidate.upsert({
+    where: { externalPostId: body.externalPostId },
+    create: data,
+    update: {
+      authorHandle: data.authorHandle,
+      authorName: data.authorName,
+      content: data.content,
+      engagement: data.engagement,
+      replySuggestions: data.replySuggestions,
+      tweetedAt: data.tweetedAt,
     },
   });
 
