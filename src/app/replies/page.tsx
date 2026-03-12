@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useCallback, useMemo } from "react";
+import { useState, useEffect, useCallback, useMemo, useRef } from "react";
 import { parseJSON } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import {
@@ -18,7 +18,7 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { MessageSquare, Plus, User } from "lucide-react";
+import { MessageSquare, Plus, User, Users, X } from "lucide-react";
 import { CandidateCard, computeOpportunityScore, computeVelocity } from "@/components/replies/candidate-card";
 import type { ReplyCandidate } from "@/components/replies/candidate-card";
 import { TargetCard } from "@/components/replies/target-card";
@@ -140,6 +140,40 @@ export default function RepliesPage() {
   }
 
   const statusFilters: StatusFilter[] = ["new", "replied", "skipped"];
+  const [mobileTargetsOpen, setMobileTargetsOpen] = useState(false);
+  const panelRef = useRef<HTMLDivElement>(null);
+
+  // Close mobile panel on outside click
+  useEffect(() => {
+    if (!mobileTargetsOpen) return;
+    function handleClick(e: MouseEvent) {
+      if (panelRef.current && !panelRef.current.contains(e.target as Node)) {
+        setMobileTargetsOpen(false);
+      }
+    }
+    document.addEventListener("mousedown", handleClick);
+    return () => document.removeEventListener("mousedown", handleClick);
+  }, [mobileTargetsOpen]);
+
+  const targetsPanel = (
+    <>
+      {loadingTargets ? (
+        <p className="py-4 text-center text-xs text-zinc-500">Loading...</p>
+      ) : targets.length === 0 ? (
+        <div className="flex flex-col items-center py-6">
+          <User className="mb-2 h-6 w-6 text-zinc-600" />
+          <p className="text-xs text-zinc-500">No target accounts yet.</p>
+          <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setAddDialogOpen(true)}>
+            <Plus className="mr-1 h-3 w-3" /> Add Account
+          </Button>
+        </div>
+      ) : (
+        targets.map((target) => (
+          <TargetCard key={target.id} target={target} onToggle={toggleTarget} onDelete={deleteTarget} />
+        ))
+      )}
+    </>
+  );
 
   return (
     <div className="space-y-6">
@@ -162,10 +196,43 @@ export default function RepliesPage() {
               ))}
             </div>
             <div className="flex items-center gap-3">
+              {/* Mobile: targets toggle button */}
+              <Button
+                variant="outline"
+                size="sm"
+                className="lg:hidden"
+                onClick={() => setMobileTargetsOpen(!mobileTargetsOpen)}
+              >
+                <Users className="mr-1.5 h-3.5 w-3.5" />
+                Targets
+                {targets.length > 0 && (
+                  <span className="ml-1.5 rounded-full bg-zinc-700 px-1.5 py-0.5 text-[10px] font-medium text-zinc-300">
+                    {targets.filter((t) => t.isActive).length}
+                  </span>
+                )}
+              </Button>
               <RefreshButton onRefreshComplete={fetchCandidates} />
               <SortControls value={sortMode} onChange={setSortMode} />
             </div>
           </div>
+
+          {/* Mobile: slide-down targets panel */}
+          {mobileTargetsOpen && (
+            <div ref={panelRef} className="lg:hidden rounded-xl border border-zinc-800 bg-zinc-900 p-4 space-y-1">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-sm font-medium text-zinc-200">Reply Targets</h3>
+                <div className="flex items-center gap-1">
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setAddDialogOpen(true)}>
+                    <Plus className="h-3.5 w-3.5" />
+                  </Button>
+                  <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => setMobileTargetsOpen(false)}>
+                    <X className="h-3.5 w-3.5" />
+                  </Button>
+                </div>
+              </div>
+              {targetsPanel}
+            </div>
+          )}
 
           {loadingCandidates ? (
             <p className="py-12 text-center text-sm text-zinc-500">Loading candidates...</p>
@@ -188,8 +255,8 @@ export default function RepliesPage() {
           )}
         </div>
 
-        {/* Right panel — Targets */}
-        <div className="w-80 shrink-0 space-y-4">
+        {/* Right panel — Targets (desktop only) */}
+        <div className="hidden lg:block w-80 shrink-0 space-y-4">
           <Card className="border-zinc-800 bg-zinc-900">
             <CardHeader className="pb-3">
               <div className="flex items-center justify-between">
@@ -200,21 +267,7 @@ export default function RepliesPage() {
               </div>
             </CardHeader>
             <CardContent className="space-y-1 pt-0">
-              {loadingTargets ? (
-                <p className="py-4 text-center text-xs text-zinc-500">Loading...</p>
-              ) : targets.length === 0 ? (
-                <div className="flex flex-col items-center py-6">
-                  <User className="mb-2 h-6 w-6 text-zinc-600" />
-                  <p className="text-xs text-zinc-500">No target accounts yet.</p>
-                  <Button variant="ghost" size="sm" className="mt-2 text-xs" onClick={() => setAddDialogOpen(true)}>
-                    <Plus className="mr-1 h-3 w-3" /> Add Account
-                  </Button>
-                </div>
-              ) : (
-                targets.map((target) => (
-                  <TargetCard key={target.id} target={target} onToggle={toggleTarget} onDelete={deleteTarget} />
-                ))
-              )}
+              {targetsPanel}
             </CardContent>
           </Card>
         </div>
