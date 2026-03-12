@@ -127,6 +127,18 @@ model SlotConfig {
 
   @@unique([dayOfWeek, timeBlock, platform])
   scheduledPosts ScheduledPost[]
+  placeholders   SlotPlaceholder[]
+}
+
+model SlotPlaceholder {
+  id        String     @id @default(cuid())
+  slotId    String
+  slot      SlotConfig @relation(fields: [slotId], references: [id])
+  weekStart DateTime
+  text      String
+  platform  String
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
 }
 
 model XAccount {
