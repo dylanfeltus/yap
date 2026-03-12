@@ -20,7 +20,7 @@ export const PRODUCTS = (process.env.NEXT_PUBLIC_CONTENT_PRODUCTS?.split(",").ma
   "Product C",
 ]) as readonly string[];
 
-export const PLATFORMS = ["X", "LinkedIn", "Both"] as const;
+export const PLATFORMS = ["X", "LinkedIn", "Article", "Both"] as const;
 
 export const STATUSES = ["idea", "drafted", "scheduled", "posted"] as const;
 

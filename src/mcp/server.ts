@@ -50,7 +50,7 @@ const tools: Tool[] = [
         },
         platform: {
           type: "string",
-          enum: ["X", "LinkedIn"],
+          enum: ["X", "LinkedIn", "Article"],
           description: "Platform to post to (default: X)",
         },
         isThread: {
@@ -231,7 +231,7 @@ const tools: Tool[] = [
       properties: {
         platform: {
           type: "string",
-          enum: ["X", "LinkedIn"],
+          enum: ["X", "LinkedIn", "Article"],
           description: "Platform to find next slot for",
         },
       },

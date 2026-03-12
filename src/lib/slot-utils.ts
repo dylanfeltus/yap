@@ -43,4 +43,4 @@ export const TIME_BLOCKS = [
 
 export const DAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"] as const;
 
-export const PLATFORMS = ["X", "LinkedIn"] as const;
+export const PLATFORMS = ["X", "LinkedIn", "Article"] as const;

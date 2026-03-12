@@ -49,6 +49,13 @@ function PlatformBadge({ platform }: { platform: string }) {
       </span>
     );
   }
+  if (platform === "Article") {
+    return (
+      <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-amber-500/20 text-amber-400">
+        A
+      </span>
+    );
+  }
   return (
     <span className="inline-flex items-center rounded px-1.5 py-0.5 text-[10px] font-semibold bg-zinc-700 text-zinc-300">
       𝕏

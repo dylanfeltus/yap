@@ -403,6 +403,7 @@ export default function DraftsPage() {
                   <SelectContent>
                     <SelectItem value="X">X</SelectItem>
                     <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                    <SelectItem value="Article">Article</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -733,6 +734,7 @@ export default function DraftsPage() {
                   <SelectContent>
                     <SelectItem value="X">X</SelectItem>
                     <SelectItem value="LinkedIn">LinkedIn</SelectItem>
+                    <SelectItem value="Article">Article</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
