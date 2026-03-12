@@ -4,30 +4,25 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import {
-  CheckCircle2,
-  Calendar,
+  LayoutDashboard,
   CalendarDays,
   FileText,
   Lightbulb,
   MessageSquare,
-  BarChart3,
-  Mic,
-  Clock,
+  Settings,
+  CheckCircle2,
   Twitter,
   Menu,
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
-  { label: "Approve", href: "/approve", icon: CheckCircle2, showBadge: true },
-  { label: "Calendar", href: "/calendar", icon: Calendar },
-  { label: "Planner", href: "/planner", icon: CalendarDays },
+  { label: "Dashboard", href: "/", icon: LayoutDashboard },
+  { label: "Planner", href: "/planner", icon: CalendarDays, showBadge: true },
   { label: "Drafts", href: "/drafts", icon: FileText },
   { label: "Ideas", href: "/ideas", icon: Lightbulb },
   { label: "Reply Guy", href: "/replies", icon: MessageSquare },
-  { label: "Analytics", href: "/analytics", icon: BarChart3 },
-  { label: "Voice", href: "/voice", icon: Mic },
-  { label: "Scheduler", href: "/scheduler", icon: Clock },
+  { label: "Settings", href: "/voice", icon: Settings },
 ];
 
 interface XAccountStatus {
