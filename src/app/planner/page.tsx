@@ -9,8 +9,11 @@ import {
   GripVertical,
   X,
   Check,
+  CheckCircle2,
   Trash2,
   ExternalLink,
+  Pencil,
+  ArrowRightLeft,
 } from "lucide-react";
 import { format, addDays } from "date-fns";
 import {
@@ -68,6 +71,13 @@ interface Draft {
   status: string;
   createdAt: string;
   scheduledPosts: { id: string }[];
+}
+
+interface SlotPlaceholder {
+  id: string;
+  slotId: string;
+  text: string;
+  platform: string;
 }
 
 /* ─── Platform Badge ─── */
@@ -172,40 +182,99 @@ function DragGhostCard({ draft }: { draft: Draft }) {
 
 /* ─── Droppable Slot ─── */
 
+/**
+ * Determine the "worst" visual state of a slot's contents.
+ * Priority (worst → best): empty → placeholders-only → has-drafts → all-approved → all-posted
+ */
+type SlotVisualState = "empty" | "placeholder" | "draft" | "approved" | "posted";
+
+function getSlotVisualState(
+  posts: ScheduledPostPreview[],
+  placeholderCount: number
+): SlotVisualState {
+  if (posts.length === 0 && placeholderCount === 0) return "empty";
+  if (posts.length === 0) return "placeholder";
+
+  const hasDraft = posts.some(
+    (p) => p.status !== "posted" && p.draftStatus === "draft"
+  );
+  if (hasDraft) return "draft";
+
+  const allPosted = posts.every((p) => p.status === "posted");
+  if (allPosted) return "posted";
+
+  return "approved";
+}
+
+const slotBorderStyles: Record<SlotVisualState, string> = {
+  empty: "border-dashed border-zinc-700/50",
+  placeholder: "border-dashed border-amber-500/25 bg-amber-500/[0.03]",
+  draft: "border-yellow-500/30 bg-yellow-500/5",
+  approved: "border-green-500/30 bg-green-500/5",
+  posted: "border-blue-500/20 bg-blue-500/[0.03]",
+};
+
+const slotCountStyles: Record<SlotVisualState, string> = {
+  empty: "text-zinc-600",
+  placeholder: "text-amber-500/70",
+  draft: "text-yellow-400",
+  approved: "text-green-400",
+  posted: "text-blue-400/70",
+};
+
 function DroppableSlot({
   slotId,
   dayOfWeek,
   fill,
   isToday,
+  placeholders,
+  weekStart,
   onAction,
+  onPlaceholderAction,
 }: {
   slotId: string;
   dayOfWeek: number;
   fill: SlotFillData;
   isToday: boolean;
+  placeholders: SlotPlaceholder[];
+  weekStart: Date;
   onAction: (
     action: "approve" | "unapprove" | "remove",
     scheduledPostId: string,
     draftId: string
   ) => void;
+  onPlaceholderAction: (
+    action: "convert" | "edit" | "delete" | "create",
+    placeholder?: SlotPlaceholder,
+    data?: { text?: string; slotId?: string; platform?: string }
+  ) => void;
 }) {
   const droppableId = `slot-${slotId}-${dayOfWeek}`;
   const { isOver, setNodeRef } = useDroppable({ id: droppableId });
   const [expandedPostId, setExpandedPostId] = useState<string | null>(null);
+  const [expandedPlaceholderId, setExpandedPlaceholderId] = useState<string | null>(null);
+  const [editingPlaceholderId, setEditingPlaceholderId] = useState<string | null>(null);
+  const [editText, setEditText] = useState("");
+  const [addingNote, setAddingNote] = useState(false);
+  const [newNoteText, setNewNoteText] = useState("");
 
-  const isEmpty = fill.filledCount === 0;
+  const isEmpty = fill.filledCount === 0 && placeholders.length === 0;
   const isFull = fill.filledCount >= fill.targetCount;
+  const hasRoom = fill.filledCount + placeholders.length < fill.targetCount;
+  const openSlots = fill.targetCount - fill.filledCount;
+
+  const visualState = getSlotVisualState(fill.scheduledPosts, placeholders.length);
+
+  const noteCountLabel = placeholders.length > 0
+    ? ` + ${placeholders.length} note${placeholders.length > 1 ? "s" : ""}`
+    : "";
 
   return (
     <div
       ref={setNodeRef}
       className={cn(
         "rounded-md border p-1.5 min-h-[60px] transition-all",
-        isEmpty
-          ? "border-dashed border-zinc-700/50"
-          : isFull
-            ? "border-green-500/30 bg-green-500/5"
-            : "border-yellow-500/30 bg-yellow-500/5",
+        slotBorderStyles[visualState],
         isOver && !isFull && "border-indigo-500 bg-indigo-500/10 ring-1 ring-indigo-500/30",
         isOver && isFull && "border-red-500/50 bg-red-500/5"
       )}
@@ -214,38 +283,49 @@ function DroppableSlot({
       <div className="flex items-center justify-between mb-1">
         <PlatformBadge platform={fill.platform} />
         <span
-          className={cn(
-            "text-[10px] font-medium",
-            isFull ? "text-green-400" : isEmpty ? "text-zinc-600" : "text-yellow-400"
-          )}
+          className={cn("text-[10px] font-medium", slotCountStyles[visualState])}
         >
-          {fill.filledCount}/{fill.targetCount}
+          {fill.filledCount}/{fill.targetCount}{noteCountLabel}
         </span>
       </div>
 
       {/* Scheduled posts */}
       {fill.scheduledPosts.map((post) => {
         const isExpanded = expandedPostId === post.id;
+        const isPosted = post.status === "posted";
+        const isApproved = !isPosted && post.draftStatus === "approved";
+
         return (
-          <div key={post.id} className="relative">
+          <div key={post.id} className={cn("relative", isPosted && "opacity-70")}>
             <button
               onClick={() => setExpandedPostId(isExpanded ? null : post.id)}
               className={cn(
                 "w-full text-left rounded px-1.5 py-1 mb-0.5 last:mb-0 transition-colors",
-                post.status === "posted"
+                isPosted
                   ? "bg-blue-500/10 border border-blue-500/20"
-                  : post.draftStatus === "approved"
-                    ? "bg-green-500/10 border border-green-500/20"
-                    : "bg-yellow-500/10 border border-yellow-500/20"
+                  : isApproved
+                    ? "bg-green-500/10 border border-green-500/40"
+                    : "bg-yellow-500/10 border border-yellow-500/40"
               )}
             >
-              <p className="truncate text-[10px] text-zinc-300">
-                {post.content.slice(0, 40)}
-                {post.content.length > 40 ? "…" : ""}
-              </p>
+              <div className="flex items-start gap-1">
+                {isPosted && (
+                  <CheckCircle2 className="mt-px h-2.5 w-2.5 shrink-0 text-blue-400" />
+                )}
+                {isApproved && (
+                  <div className="mt-1 h-1.5 w-1.5 shrink-0 rounded-full bg-green-400" />
+                )}
+                <p className={cn(
+                  "truncate text-[10px] flex-1",
+                  isPosted ? "text-zinc-400" : "text-zinc-300"
+                )}>
+                  {post.content.slice(0, 40)}
+                  {post.content.length > 40 ? "…" : ""}
+                </p>
+              </div>
               <div className="mt-0.5 flex items-center gap-1">
                 <StatusPill
-                  status={post.status === "posted" ? "posted" : post.draftStatus}
+                  status={isPosted ? "posted" : post.draftStatus}
                 />
                 <span className="text-[9px] text-zinc-600">
                   {format(new Date(post.scheduledAt), "h:mm a")}
@@ -256,7 +336,7 @@ function DroppableSlot({
             {/* Actions popover */}
             {isExpanded && (
               <div className="absolute left-0 right-0 top-full z-20 mt-0.5 rounded-md border border-zinc-700 bg-zinc-800 p-1.5 shadow-lg">
-                {post.status !== "posted" && (
+                {!isPosted && (
                   <>
                     {post.draftStatus === "draft" ? (
                       <button
@@ -306,11 +386,161 @@ function DroppableSlot({
         );
       })}
 
+      {/* Placeholders — amber dashed, italic, 📝 */}
+      {placeholders.map((ph) => {
+        const isExpanded = expandedPlaceholderId === ph.id;
+        const isEditing = editingPlaceholderId === ph.id;
+
+        if (isEditing) {
+          return (
+            <form
+              key={ph.id}
+              onSubmit={(e) => {
+                e.preventDefault();
+                if (editText.trim()) {
+                  onPlaceholderAction("edit", ph, { text: editText.trim() });
+                }
+                setEditingPlaceholderId(null);
+                setEditText("");
+              }}
+              className="mb-0.5"
+            >
+              <input
+                type="text"
+                value={editText}
+                onChange={(e) => setEditText(e.target.value)}
+                autoFocus
+                onKeyDown={(e) => {
+                  if (e.key === "Escape") {
+                    setEditingPlaceholderId(null);
+                    setEditText("");
+                  }
+                }}
+                className="w-full rounded border border-dashed border-amber-500/40 bg-amber-500/5 px-1.5 py-1 text-[10px] text-amber-200 italic placeholder:text-amber-500/40 focus:border-amber-500 focus:outline-none"
+                placeholder="Note text..."
+              />
+            </form>
+          );
+        }
+
+        return (
+          <div key={ph.id} className="relative">
+            <button
+              onClick={() =>
+                setExpandedPlaceholderId(isExpanded ? null : ph.id)
+              }
+              className="w-full text-left rounded border border-dashed border-amber-500/30 bg-amber-500/10 px-1.5 py-1 mb-0.5 transition-colors hover:border-amber-500/50"
+            >
+              <p className="truncate text-[10px] text-amber-300/80 italic">
+                <span className="mr-1">📝</span>
+                {ph.text.slice(0, 40)}
+                {ph.text.length > 40 ? "…" : ""}
+              </p>
+            </button>
+
+            {isExpanded && (
+              <div className="absolute left-0 right-0 top-full z-20 mt-0.5 rounded-md border border-zinc-700 bg-zinc-800 p-1.5 shadow-lg">
+                <button
+                  onClick={() => {
+                    onPlaceholderAction("convert", ph);
+                    setExpandedPlaceholderId(null);
+                  }}
+                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-[11px] text-indigo-400 hover:bg-zinc-700/50"
+                >
+                  <ArrowRightLeft className="h-3 w-3" />
+                  Convert to Draft
+                </button>
+                <button
+                  onClick={() => {
+                    setEditText(ph.text);
+                    setEditingPlaceholderId(ph.id);
+                    setExpandedPlaceholderId(null);
+                  }}
+                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-[11px] text-zinc-300 hover:bg-zinc-700/50"
+                >
+                  <Pencil className="h-3 w-3" />
+                  Edit
+                </button>
+                <button
+                  onClick={() => {
+                    onPlaceholderAction("delete", ph);
+                    setExpandedPlaceholderId(null);
+                  }}
+                  className="flex w-full items-center gap-1.5 rounded px-2 py-1.5 text-[11px] text-red-400 hover:bg-zinc-700/50"
+                >
+                  <Trash2 className="h-3 w-3" />
+                  Delete
+                </button>
+              </div>
+            )}
+          </div>
+        );
+      })}
+
+      {/* Add note inline form */}
+      {addingNote && (
+        <form
+          onSubmit={(e) => {
+            e.preventDefault();
+            if (newNoteText.trim()) {
+              onPlaceholderAction("create", undefined, {
+                text: newNoteText.trim(),
+                slotId: fill.slotId,
+                platform: fill.platform,
+              });
+            }
+            setAddingNote(false);
+            setNewNoteText("");
+          }}
+          className="mb-0.5"
+        >
+          <input
+            type="text"
+            value={newNoteText}
+            onChange={(e) => setNewNoteText(e.target.value)}
+            autoFocus
+            onKeyDown={(e) => {
+              if (e.key === "Escape") {
+                setAddingNote(false);
+                setNewNoteText("");
+              }
+            }}
+            className="w-full rounded border border-dashed border-amber-500/40 bg-amber-500/5 px-1.5 py-1 text-[10px] text-amber-200 italic placeholder:text-amber-500/40 focus:border-amber-500 focus:outline-none"
+            placeholder="Add a note..."
+          />
+        </form>
+      )}
+
       {/* Empty state */}
-      {isEmpty && (
-        <div className="flex items-center justify-center py-1">
+      {isEmpty && !addingNote && (
+        <div className="flex flex-col items-center justify-center gap-0.5 py-1">
           <span className="text-[9px] text-zinc-600">Drop draft here</span>
+          {openSlots > 1 && (
+            <span className="text-[9px] text-zinc-700">
+              {openSlots} slots open
+            </span>
+          )}
         </div>
+      )}
+
+      {/* Open slots count when partially filled */}
+      {!isEmpty && openSlots > 0 && fill.filledCount > 0 && (
+        <div className="flex items-center justify-center py-0.5">
+          <span className="text-[9px] text-zinc-600">
+            {openSlots} slot{openSlots > 1 ? "s" : ""} open
+          </span>
+        </div>
+      )}
+
+      {/* Add note button */}
+      {hasRoom && !addingNote && (
+        <button
+          onClick={() => setAddingNote(true)}
+          className="flex w-full items-center justify-center gap-0.5 rounded py-0.5 text-[9px] text-zinc-600 transition-colors hover:text-zinc-400"
+        >
+          <Plus className="h-2.5 w-2.5" />
+          Note
+        </button>
       )}
     </div>
   );
@@ -412,6 +642,7 @@ export default function PlannerPage() {
   const [weekStart, setWeekStart] = useState(() => getWeekStart(new Date()));
   const [fills, setFills] = useState<SlotFillData[]>([]);
   const [drafts, setDrafts] = useState<Draft[]>([]);
+  const [placeholders, setPlaceholders] = useState<SlotPlaceholder[]>([]);
   const [configOpen, setConfigOpen] = useState(false);
   const [loading, setLoading] = useState(true);
   const [activeDraft, setActiveDraft] = useState<Draft | null>(null);
@@ -441,15 +672,19 @@ export default function PlannerPage() {
     setLoading(true);
     try {
       const weekParam = format(weekStart, "yyyy-MM-dd");
-      const [fillsRes, draftsRes] = await Promise.all([
+      const [fillsRes, draftsRes, placeholdersRes] = await Promise.all([
         fetch(`/api/slots/fill?week=${weekParam}`),
         fetch("/api/drafts"),
+        fetch(`/api/slots/placeholders?week=${weekParam}`),
       ]);
       if (fillsRes.ok) {
         setFills(await fillsRes.json());
       }
       if (draftsRes.ok) {
         setDrafts(await draftsRes.json());
+      }
+      if (placeholdersRes.ok) {
+        setPlaceholders(await placeholdersRes.json());
       }
     } catch {
       // Failed
@@ -510,6 +745,78 @@ export default function PlannerPage() {
         });
       } else if (action === "remove") {
         await fetch(`/api/scheduler/${scheduledPostId}`, {
+          method: "DELETE",
+        });
+      }
+      fetchAll();
+    } catch {
+      // Failed
+    }
+  }
+
+  /* ── Placeholder actions ── */
+
+  async function handlePlaceholderAction(
+    action: "convert" | "edit" | "delete" | "create",
+    placeholder?: SlotPlaceholder,
+    data?: { text?: string; slotId?: string; platform?: string }
+  ) {
+    try {
+      if (action === "create" && data) {
+        await fetch("/api/slots/placeholders", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            slotId: data.slotId,
+            weekStart: format(weekStart, "yyyy-MM-dd"),
+            text: data.text,
+            platform: data.platform,
+          }),
+        });
+      } else if (action === "edit" && placeholder && data?.text) {
+        await fetch(`/api/slots/placeholders/${placeholder.id}`, {
+          method: "PATCH",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ text: data.text }),
+        });
+      } else if (action === "delete" && placeholder) {
+        await fetch(`/api/slots/placeholders/${placeholder.id}`, {
+          method: "DELETE",
+        });
+      } else if (action === "convert" && placeholder) {
+        // 1. Create draft
+        const draftRes = await fetch("/api/drafts", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            content: placeholder.text,
+            platform: placeholder.platform,
+            status: "draft",
+          }),
+        });
+        if (!draftRes.ok) return;
+        const newDraft = await draftRes.json();
+
+        // 2. Find the fill to get slot timing info
+        const fill = fills.find((f) => f.slotId === placeholder.slotId);
+        if (fill) {
+          const dayDate = getDateForDay(weekStart, fill.dayOfWeek);
+          const scheduledAt = pickTimeInSlot(dayDate, fill.startHour, fill.endHour);
+
+          await fetch("/api/scheduler", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+              draftId: newDraft.id,
+              platform: placeholder.platform,
+              scheduledAt: scheduledAt.toISOString(),
+              slotId: placeholder.slotId,
+            }),
+          });
+        }
+
+        // 3. Delete placeholder
+        await fetch(`/api/slots/placeholders/${placeholder.id}`, {
           method: "DELETE",
         });
       }
@@ -748,7 +1055,12 @@ export default function PlannerPage() {
                               dayOfWeek={dayIdx}
                               fill={fill}
                               isToday={isTodayCol}
+                              placeholders={placeholders.filter(
+                                (ph) => ph.slotId === fill.slotId
+                              )}
+                              weekStart={weekStart}
                               onAction={handleSlotAction}
+                              onPlaceholderAction={handlePlaceholderAction}
                             />
                           ))}
                         </div>
