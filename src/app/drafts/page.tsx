@@ -47,6 +47,8 @@ import {
   Trash2,
   MessageSquare,
   Paperclip,
+  Calendar,
+  Loader2,
 } from "lucide-react";
 import { useLiveUpdates } from "@/lib/use-live-updates";
 
@@ -110,6 +112,70 @@ function truncate(text: string, max: number) {
 }
 
 // ---------------------------------------------------------------------------
+// Slot Types & Helpers
+// ---------------------------------------------------------------------------
+
+interface SlotFill {
+  slotId: string;
+  dayOfWeek: number;
+  timeBlock: string;
+  platform: string;
+  targetCount: number;
+  startHour: number;
+  endHour: number;
+  filledCount: number;
+  scheduledPosts: { id: string; content: string; status: string }[];
+}
+
+interface SlotWithDate extends SlotFill {
+  dayDate: Date;
+}
+
+const DAY_NAMES = ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"];
+
+const TIME_BLOCK_LABELS: Record<string, string> = {
+  morning: "Morning",
+  afternoon: "Afternoon",
+  evening: "Evening",
+};
+
+function getWeekMonday(date: Date): string {
+  const d = new Date(date);
+  const day = d.getDay();
+  const diff = d.getDate() - day + (day === 0 ? -6 : 1);
+  d.setDate(diff);
+  return d.toISOString().split("T")[0];
+}
+
+function formatSlotDay(date: Date): string {
+  return date.toLocaleDateString("en-US", {
+    weekday: "long",
+    month: "short",
+    day: "numeric",
+  });
+}
+
+function pickTimeInSlotClientSide(
+  dayDate: Date,
+  startHour: number,
+  endHour: number,
+): Date {
+  const totalMinutes = (endHour - startHour) * 60;
+  const randomMinute = Math.floor(Math.random() * totalMinutes);
+  const hour = startHour + Math.floor(randomMinute / 60);
+  const minute = randomMinute % 60;
+  const result = new Date(dayDate);
+  result.setHours(hour, minute, 0, 0);
+  return result;
+}
+
+function getDateForDay(weekStart: Date, dayOfWeek: number): Date {
+  const d = new Date(weekStart);
+  d.setDate(d.getDate() + dayOfWeek);
+  return d;
+}
+
+// ---------------------------------------------------------------------------
 // Page Component
 // ---------------------------------------------------------------------------
 
@@ -129,6 +195,10 @@ export default function DraftsPage() {
   const [scheduleOpen, setScheduleOpen] = useState(false);
   const [scheduleDate, setScheduleDate] = useState("");
   const [scheduleTime, setScheduleTime] = useState("");
+  const [scheduleTab, setScheduleTab] = useState<"slots" | "custom">("slots");
+  const [slotsData, setSlotsData] = useState<SlotWithDate[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotScheduling, setSlotScheduling] = useState<string | null>(null);
 
   // Create form state
   const [newContent, setNewContent] = useState("");
@@ -305,11 +375,103 @@ export default function DraftsPage() {
   // Schedule
   // -------------------------------------------------------------------------
 
+  async function fetchSlots(platform: string) {
+    setSlotsLoading(true);
+    try {
+      const now = new Date();
+      const thisMonday = getWeekMonday(now);
+      const nextMondayDate = new Date(thisMonday + "T00:00:00");
+      nextMondayDate.setDate(nextMondayDate.getDate() + 7);
+      const nextMonday = nextMondayDate.toISOString().split("T")[0];
+
+      const [thisWeekRes, nextWeekRes] = await Promise.all([
+        fetch(`/api/slots/fill?week=${thisMonday}`),
+        fetch(`/api/slots/fill?week=${nextMonday}`),
+      ]);
+
+      const thisWeekData: SlotFill[] = await thisWeekRes.json();
+      const nextWeekData: SlotFill[] = await nextWeekRes.json();
+
+      const thisWeekStart = new Date(thisMonday + "T00:00:00");
+      const nextWeekStart = new Date(nextMonday + "T00:00:00");
+
+      const addDates = (slots: SlotFill[], weekStart: Date): SlotWithDate[] =>
+        slots.map((s) => ({
+          ...s,
+          dayDate: getDateForDay(weekStart, s.dayOfWeek),
+        }));
+
+      const allSlots = [
+        ...addDates(thisWeekData, thisWeekStart),
+        ...addDates(nextWeekData, nextWeekStart),
+      ];
+
+      // Filter: matching platform, not full, not in the past
+      const filtered = allSlots.filter((slot) => {
+        if (slot.platform !== platform) return false;
+        if (slot.filledCount >= slot.targetCount) return false;
+        const slotEnd = new Date(slot.dayDate);
+        slotEnd.setHours(slot.endHour, 0, 0, 0);
+        if (slotEnd <= now) return false;
+        return true;
+      });
+
+      // Sort by date then startHour
+      filtered.sort((a, b) => {
+        const dateA = a.dayDate.getTime() + a.startHour * 60;
+        const dateB = b.dayDate.getTime() + b.startHour * 60;
+        return dateA - dateB;
+      });
+
+      setSlotsData(filtered);
+    } catch (err) {
+      console.error("Failed to fetch slots:", err);
+      setSlotsData([]);
+    } finally {
+      setSlotsLoading(false);
+    }
+  }
+
   function openScheduleDialog(draft: Draft) {
     setScheduleDraft(draft);
     setScheduleDate("");
     setScheduleTime("");
+    setScheduleTab("slots");
+    setSlotsData([]);
+    setSlotScheduling(null);
     setScheduleOpen(true);
+    fetchSlots(draft.platform);
+  }
+
+  async function handleScheduleFromSlot(slot: SlotWithDate) {
+    if (!scheduleDraft) return;
+    setSlotScheduling(slot.slotId);
+    try {
+      const now = new Date();
+      let scheduledTime = pickTimeInSlotClientSide(
+        slot.dayDate,
+        slot.startHour,
+        slot.endHour,
+      );
+      // If the picked time is in the past, push to at least 5 min from now
+      if (scheduledTime <= now) {
+        scheduledTime = new Date(now.getTime() + 5 * 60 * 1000);
+      }
+      await fetch("/api/scheduler", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          draftId: scheduleDraft.id,
+          platform: scheduleDraft.platform,
+          scheduledAt: scheduledTime.toISOString(),
+        }),
+      });
+      setScheduleOpen(false);
+      setScheduleDraft(null);
+      fetchDrafts();
+    } finally {
+      setSlotScheduling(null);
+    }
   }
 
   async function handleSchedule() {
@@ -1026,7 +1188,7 @@ export default function DraftsPage() {
       {/* Schedule Dialog                                                    */}
       {/* ----------------------------------------------------------------- */}
       <Dialog open={scheduleOpen} onOpenChange={setScheduleOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-lg">
           <DialogHeader>
             <DialogTitle>Schedule Draft</DialogTitle>
           </DialogHeader>
@@ -1040,35 +1202,139 @@ export default function DraftsPage() {
                 : &ldquo;{truncate(scheduleDraft.content, 80)}&rdquo;
               </p>
             )}
-            <div className="space-y-2">
-              <Label>Date</Label>
-              <Input
-                type="date"
-                value={scheduleDate}
-                onChange={(e) => setScheduleDate(e.target.value)}
-              />
-            </div>
-            <div className="space-y-2">
-              <Label>Time</Label>
-              <Input
-                type="time"
-                value={scheduleTime}
-                onChange={(e) => setScheduleTime(e.target.value)}
-              />
-            </div>
+
+            <Tabs value={scheduleTab} onValueChange={(v) => setScheduleTab(v as "slots" | "custom")}>
+              <TabsList className="w-full">
+                <TabsTrigger value="slots" className="flex-1">
+                  <Calendar className="h-3.5 w-3.5 mr-1.5" />
+                  Available Slots
+                </TabsTrigger>
+                <TabsTrigger value="custom" className="flex-1">
+                  <Clock className="h-3.5 w-3.5 mr-1.5" />
+                  Custom Time
+                </TabsTrigger>
+              </TabsList>
+
+              {/* Available Slots Tab */}
+              <TabsContent value="slots" className="mt-4">
+                {slotsLoading ? (
+                  <div className="flex items-center justify-center py-8">
+                    <Loader2 className="h-5 w-5 text-zinc-500 animate-spin" />
+                    <span className="ml-2 text-sm text-zinc-500">Loading slots...</span>
+                  </div>
+                ) : slotsData.length === 0 ? (
+                  <div className="flex flex-col items-center justify-center py-8 text-center">
+                    <Calendar className="h-8 w-8 text-zinc-600 mb-2" />
+                    <p className="text-sm text-zinc-400">
+                      No available slots for {scheduleDraft?.platform ?? "this platform"}.
+                    </p>
+                    <p className="text-xs text-zinc-500 mt-1">
+                      Try the Custom Time tab or configure slots in the Planner.
+                    </p>
+                  </div>
+                ) : (
+                  <div className="space-y-4 max-h-[340px] overflow-y-auto pr-1">
+                    {(() => {
+                      // Group by day
+                      const grouped = new Map<string, SlotWithDate[]>();
+                      for (const slot of slotsData) {
+                        const key = slot.dayDate.toISOString().split("T")[0];
+                        if (!grouped.has(key)) grouped.set(key, []);
+                        grouped.get(key)!.push(slot);
+                      }
+                      return Array.from(grouped.entries()).map(([dayKey, daySlots]) => (
+                        <div key={dayKey}>
+                          <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wide mb-2">
+                            {formatSlotDay(daySlots[0].dayDate)}
+                          </h4>
+                          <div className="space-y-1.5">
+                            {daySlots.map((slot) => {
+                              const remaining = slot.targetCount - slot.filledCount;
+                              const blockLabel = TIME_BLOCK_LABELS[slot.timeBlock] ?? slot.timeBlock;
+                              const hourDisplay = `${slot.startHour > 12 ? slot.startHour - 12 : slot.startHour}${slot.startHour >= 12 ? "pm" : "am"}–${slot.endHour > 12 ? slot.endHour - 12 : slot.endHour}${slot.endHour >= 12 ? "pm" : "am"}`;
+                              return (
+                                <button
+                                  key={slot.slotId + dayKey}
+                                  disabled={slotScheduling !== null}
+                                  onClick={() => handleScheduleFromSlot(slot)}
+                                  className={cn(
+                                    "w-full flex items-center justify-between gap-3 rounded-lg border px-3 py-2.5 text-left transition-colors",
+                                    "border-zinc-800 bg-zinc-900 hover:border-zinc-600 hover:bg-zinc-800/80",
+                                    slotScheduling === slot.slotId && "opacity-70 pointer-events-none"
+                                  )}
+                                >
+                                  <div className="flex items-center gap-2.5 min-w-0">
+                                    <div className="flex flex-col min-w-0">
+                                      <span className="text-sm text-zinc-200 font-medium">
+                                        {blockLabel}
+                                      </span>
+                                      <span className="text-xs text-zinc-500">
+                                        {hourDisplay}
+                                      </span>
+                                    </div>
+                                  </div>
+                                  <div className="flex items-center gap-2 flex-shrink-0">
+                                    <Badge variant="outline" className="text-xs text-zinc-400 border-zinc-700">
+                                      {slot.platform}
+                                    </Badge>
+                                    <span className={cn(
+                                      "text-xs",
+                                      remaining > 1 ? "text-green-400" : "text-amber-400"
+                                    )}>
+                                      {slot.filledCount}/{slot.targetCount} filled
+                                    </span>
+                                    {slotScheduling === slot.slotId ? (
+                                      <Loader2 className="h-3.5 w-3.5 text-zinc-400 animate-spin" />
+                                    ) : (
+                                      <Send className="h-3.5 w-3.5 text-zinc-500" />
+                                    )}
+                                  </div>
+                                </button>
+                              );
+                            })}
+                          </div>
+                        </div>
+                      ));
+                    })()}
+                  </div>
+                )}
+              </TabsContent>
+
+              {/* Custom Time Tab */}
+              <TabsContent value="custom" className="mt-4">
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label>Date</Label>
+                    <Input
+                      type="date"
+                      value={scheduleDate}
+                      onChange={(e) => setScheduleDate(e.target.value)}
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label>Time</Label>
+                    <Input
+                      type="time"
+                      value={scheduleTime}
+                      onChange={(e) => setScheduleTime(e.target.value)}
+                    />
+                  </div>
+                </div>
+                <DialogFooter className="mt-4">
+                  <Button variant="ghost" onClick={() => setScheduleOpen(false)}>
+                    Cancel
+                  </Button>
+                  <Button
+                    onClick={handleSchedule}
+                    disabled={!scheduleDate || !scheduleTime}
+                  >
+                    <Send className="h-4 w-4 mr-1" />
+                    Schedule
+                  </Button>
+                </DialogFooter>
+              </TabsContent>
+            </Tabs>
           </div>
-          <DialogFooter className="mt-4">
-            <Button variant="ghost" onClick={() => setScheduleOpen(false)}>
-              Cancel
-            </Button>
-            <Button
-              onClick={handleSchedule}
-              disabled={!scheduleDate || !scheduleTime}
-            >
-              <Send className="h-4 w-4 mr-1" />
-              Schedule
-            </Button>
-          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>
