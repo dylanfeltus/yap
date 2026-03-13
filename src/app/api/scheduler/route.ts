@@ -20,6 +20,7 @@ export async function POST(request: NextRequest) {
       platform: body.platform,
       scheduledAt: new Date(body.scheduledAt),
       status: "queued",
+      ...(body.slotId ? { slotId: body.slotId } : {}),
     },
   });
 

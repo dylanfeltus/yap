@@ -35,10 +35,10 @@ export async function DELETE(
 
   if (post) {
     await prisma.scheduledPost.delete({ where: { id } });
-    // Revert draft status
+    // Revert draft status to draft (unscheduled)
     await prisma.draft.update({
       where: { id: post.draftId },
-      data: { status: "approved" },
+      data: { status: "draft" },
     });
   }
 
