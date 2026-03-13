@@ -1,27 +1,56 @@
 # Yap
 
-Open source social media management. AI agents write, humans approve.
+Open source AI-powered social media management. Plan, draft, schedule, and post across X and LinkedIn.
 
 ## What is Yap?
 
-Yap is a platform where AI agents and humans collaborate on social media content. Your agents create drafts, schedule posts, and find reply opportunities. You review everything and approve with one click.
+Yap is a workspace where AI agents and humans collaborate on social media content. Your agents create drafts, schedule posts, and find reply opportunities — you review and approve with one click.
 
-**Yap is not an AI product.** It's the workspace where your existing AI agents (Claude, OpenClaw, or any MCP-compatible agent) interface with your social accounts.
+**Yap is not an AI product.** It's the platform where your existing AI agents (Claude, OpenClaw, or any API-compatible agent) interface with your social accounts.
 
 ## Features
 
-- 📝 **Draft management** — Create, edit, and organize posts and threads
-- ✅ **Approval workflow** — Nothing posts without your say-so
-- 📅 **Calendar view** — See your content schedule at a glance
-- 🗓️ **Weekly planner** — Set content goals by day, time block, and platform
-- 🎯 **Reply Guy** — Surface high-opportunity tweets, draft replies, one-click copy
-- 📎 **Media uploads** — Attach up to 4 images per post
-- 🔌 **MCP server** — 9 tools for any AI agent to manage your content
-- ⏰ **Auto-scheduler** — Posts go out on time, every time
+### 📋 Drag-and-Drop Planner
+The planner is the heart of Yap — a weekly grid where you manage all your content:
+- **Draft queue** on the left — drag drafts into time slots on the right
+- **Weekly slot grid** — Morning, Afternoon, Evening blocks across Mon-Sun
+- **Placeholder notes** — Drop reminders like "something about GUARDRAILS here" into future slots
+- **5-state visual system** — Instantly see what's empty, planned, drafted, approved, or posted at a glance
+- **One-click approve/unapprove** — Click any draft in a slot to change its status
+
+### 📝 Draft Workshop
+Full-featured draft editor with:
+- Multi-platform support (X, LinkedIn, Article)
+- Thread composer for multi-part posts
+- A/B variations for testing different copy
+- Content lanes and product tags for organization
+- Attachment management
+
+### 🎯 Reply Guy
+Surface high-opportunity posts to reply to:
+- Set up reply targets (accounts + keywords to monitor)
+- AI-generated reply suggestions
+- One-click copy to clipboard
+- Mobile-friendly with collapsible target sidebar
+
+### 🎙️ Voice Profiles
+Define AI writing voices for each platform so agent-generated content sounds like you.
+
+### 🔌 Agent-Friendly API
+Full REST API with Bearer token auth. Give your agent the API key and let it:
+- Create and manage drafts
+- Schedule posts into planner slots
+- Find reply opportunities
+- Read your voice profiles and content plan
+
+See `/llms.txt` for the full API reference (designed for AI agents to read).
+
+### ⏰ Auto-Scheduling
+Approved drafts in planner slots automatically post when the scheduled time arrives.
 
 ## Platforms
 
-- ✅ X (Twitter) — Full support
+- ✅ X (Twitter) — Full support (OAuth 2.0)
 - 🔜 LinkedIn — Coming soon
 
 ## Quick Start
@@ -30,41 +59,51 @@ Yap is a platform where AI agents and humans collaborate on social media content
 git clone https://github.com/dylanfeltus/yap.git
 cd yap
 npm install
-cp .env.example .env
-# Add your X API credentials to .env
 npx prisma db push
 npm run dev
 ```
 
-Open http://localhost:3333
+Open [http://localhost:3333](http://localhost:3333)
 
-## MCP Server
-
-Connect your AI agent to Yap:
-
-```bash
-npm run mcp
-```
-
-Available tools: `create_draft`, `list_drafts`, `update_draft`, `schedule_draft`, `publish_now`, `get_analytics`, `list_reply_candidates`, `add_reply_target`, `get_voice_profile`, `get_weekly_plan`, `get_next_slot`
+### Connect X Account
+1. Create an X Developer App at [developer.x.com](https://developer.x.com)
+2. Set callback URL to `http://localhost:3333/api/auth/x/callback`
+3. Add your credentials to `.env`:
+   ```
+   X_CLIENT_ID=your_client_id
+   X_CLIENT_SECRET=your_client_secret
+   ```
+4. Click "Connect X Account" in the sidebar
 
 ## Architecture
 
-- **Next.js** (App Router) — UI and API routes
-- **Prisma** + SQLite — Local database
-- **Tailwind** + shadcn/ui — Styling
-- **MCP** — Agent integration protocol
+- **Next.js 15** (App Router) — UI and API routes
+- **Prisma** + SQLite — Local database (zero config)
+- **Tailwind** + shadcn/ui — Dark theme UI
+- **@dnd-kit** — Drag-and-drop planner
+- **SSE** — Real-time live updates across tabs
 
-## Self-host vs Hosted
+## Pages
+
+| Page | What it does |
+|---|---|
+| `/planner` | Drag-and-drop weekly planner with draft queue |
+| `/drafts` | Full draft editor (create, edit, threads, variations) |
+| `/ideas` | Content idea backlog |
+| `/replies` | Reply Guy — find and respond to relevant posts |
+| `/settings` | Voice profiles and configuration |
+
+## Self-Host vs Hosted
 
 | | Self-hosted | Hosted (yap.ninja) |
 |---|---|---|
 | Price | Free forever | $10/mo |
-| API keys | Bring your own | Bring your own |
-| Data | On your machine | Cloud |
+| X API keys | Bring your own | Bring your own (or use ours) |
+| Data | On your machine | Cloud (Supabase) |
 | Setup | 5 minutes | Sign up and go |
+| Budget tracking | — | Built-in ($20/mo default) |
 
-Hosted version coming soon — [join the waitlist](https://yap.ninja).
+Hosted version at [yap.ninja](https://yap.ninja).
 
 ## License
 
