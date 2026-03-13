@@ -140,13 +140,8 @@ export function Sidebar() {
   return (
     <>
       <header className="fixed top-0 left-0 right-0 z-40 flex h-14 items-center justify-between border-b border-zinc-800 bg-zinc-900/95 px-4 backdrop-blur md:hidden">
-        <div className="flex items-center gap-2.5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-500 text-xs font-bold text-white">
-            Y
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-zinc-100">
-            Yap
-          </span>
+        <div className="flex items-center">
+          <img src="/yap-logo.svg" alt="Yap" className="h-5" />
         </div>
         <button
           type="button"
@@ -174,13 +169,8 @@ export function Sidebar() {
           mobileOpen ? "translate-x-0" : "-translate-x-full"
         )}
       >
-        <div className="flex h-14 items-center gap-2.5 px-5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-500 text-xs font-bold text-white">
-            Y
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-zinc-100">
-            Yap
-          </span>
+        <div className="flex h-14 items-center px-5">
+          <img src="/yap-logo.svg" alt="Yap" className="h-5" />
         </div>
         {navLinks}
         <div className="border-t border-zinc-800 px-3 py-3">
@@ -219,13 +209,8 @@ export function Sidebar() {
       </aside>
 
       <aside className="fixed inset-y-0 left-0 z-30 hidden w-60 flex-col border-r border-zinc-800 bg-zinc-900 md:flex">
-        <div className="flex h-14 items-center gap-2.5 px-5">
-          <div className="flex h-7 w-7 items-center justify-center rounded-md bg-indigo-500 text-xs font-bold text-white">
-            Y
-          </div>
-          <span className="text-sm font-semibold tracking-tight text-zinc-100">
-            Yap
-          </span>
+        <div className="flex h-14 items-center px-5">
+          <img src="/yap-logo.svg" alt="Yap" className="h-5" />
         </div>
         {navLinks}
         <div className="border-t border-zinc-800 px-3 py-3">
